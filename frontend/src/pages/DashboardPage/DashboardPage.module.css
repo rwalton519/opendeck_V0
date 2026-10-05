@@ -1,0 +1,29 @@
+.page { width:min(100%,1100px); margin:0 auto; padding:32px 24px 64px; color:var(--color-text); }
+.header { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:24px; }
+.eyebrow { margin:0 0 5px; color:var(--color-brass-bright); font:700 .68rem var(--font-display); letter-spacing:.14em; }
+.header h1,.history h2 { margin:0; }
+.subheading,.muted { color:var(--color-text-muted); font-size:.82rem; }
+.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.card { min-height:135px; display:flex; flex-direction:column; gap:7px; padding:18px !important; }
+.label { color:var(--color-text-muted); font:700 .68rem var(--font-mono); text-transform:uppercase; letter-spacing:.08em; }
+.username { font-size:1.15rem; }
+.value,.reference { color:var(--color-text-muted); font:.75rem var(--font-mono); word-break:break-word; }
+.balance { color:var(--color-brass-bright); font:800 1.55rem var(--font-mono); }
+.history { margin-top:16px; padding:20px !important; }
+.historyHeader { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:16px; }
+.linkButton { color:var(--color-brass-bright); text-decoration:none; font:.75rem var(--font-mono); }
+.tableWrap { overflow:auto; }
+.table { width:100%; border-collapse:collapse; font:.74rem var(--font-mono); }
+.table th { color:var(--color-text-muted); text-align:left; font-size:.65rem; text-transform:uppercase; letter-spacing:.06em; }
+.table th,.table td { padding:11px 8px; border-bottom:1px solid rgba(255,255,255,.07); }
+.status { color:var(--color-success); }
+.actions { display:flex; justify-content:center; gap:10px; margin-top:18px; }
+.error { color:var(--color-danger); margin-bottom:12px; }
+/* ADDED (USDC/Polygon integration + full-ledger dashboard fix) */
+.positive { color:var(--color-success); }
+.negative { color:var(--color-danger); }
+.walletAddress { font:.78rem var(--font-mono); color:var(--color-brass-bright); word-break:break-all; }
+.onchainRow { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
+.txHash { font:.72rem var(--font-mono); color:var(--color-text-muted); word-break:break-all; }
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.header{align-items:flex-start;flex-direction:column}}
+@media(max-width:560px){.page{padding:22px 12px 44px}.grid{grid-template-columns:1fr}.actions{flex-direction:column}.historyHeader{align-items:flex-start;flex-direction:column}}

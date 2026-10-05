@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SideBet — opendeck.ca/sidebet-sim</title>
+<style>
+  :root{
+    --bg: #0B0E11;
+    --panel: #12161C;
+    --panel-2: #161B22;
+    --border: #232933;
+    --text: #E4E7EB;
+    --muted: #7C8798;
+    --muted-2: #4E5867;
+    --amber: #E8A33D;
+    --amber-dim: #6b5327;
+    --green: #3DDC84;
+    --green-dim: #1f4a34;
+    --red: #E85D5D;
+    --blue: #5B9DF9;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    min-height:100vh;
+  }
+  a{color:var(--blue);}
+  ::selection{background:var(--amber-dim);}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 22px; border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg, #0F1318, #0B0E11);
+    position:sticky; top:0; z-index:20;
+  }
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand .mark{
+    font-family:var(--mono); font-weight:700; letter-spacing:0.5px;
+    font-size:18px; color:var(--text);
+  }
+  .brand .mark span{color:var(--amber);}
+  .brand .url{font-family:var(--mono); font-size:12px; color:var(--muted);}
+  .session{display:flex; align-items:center; gap:10px; font-size:13px;}
+  .pill{
+    padding:5px 10px; border:1px solid var(--border); border-radius:20px;
+    color:var(--muted); background:var(--panel);
+  }
+  .pill.you{color:var(--text); border-color:var(--amber-dim); background:#1b1710;}
+  .btn-link{
+    background:none; border:none; color:var(--blue); cursor:pointer; font-size:13px;
+    font-family:var(--sans); padding:4px 6px;
+  }
+  .btn-link:hover{text-decoration:underline;}
+
+  /* ---------- layout ---------- */
+  .layout{
+    display:grid; grid-template-columns: 1fr 340px; gap:0; align-items:start;
+  }
+  .main{padding:22px 26px 60px; min-height:calc(100vh - 57px);}
+  .ledger-col{
+    border-left:1px solid var(--border); background:var(--panel);
+    min-height:calc(100vh - 57px); position:sticky; top:57px;
+    display:flex; flex-direction:column;
+  }
+
+  @media (max-width: 860px){
+    .layout{grid-template-columns:1fr;}
+    .ledger-col{position:static; min-height:auto; border-left:none; border-top:1px solid var(--border);}
+  }
+
+  /* ---------- gate screen ---------- */
+  .gate{
+    max-width:560px; margin:8vh auto; padding:0 20px;
+  }
+  .gate h1{
+    font-family:var(--mono); font-size:26px; margin-bottom:6px; letter-spacing:0.3px;
+  }
+  .gate h1 span{color:var(--amber);}
+  .gate p.sub{color:var(--muted); margin-top:0; margin-bottom:28px; line-height:1.5;}
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px;
+  }
+  .invite-row{
+    display:flex; gap:8px; margin:14px 0; align-items:center;
+  }
+  .invite-row input{
+    flex:1; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    font-family:var(--mono); font-size:13px; padding:10px 12px; border-radius:6px;
+  }
+  .copy-btn, .primary-btn, .accept-btn, .ghost-btn{
+    cursor:pointer; border-radius:6px; font-family:var(--sans); font-weight:600;
+    border:1px solid var(--border); padding:10px 14px; font-size:13px;
+  }
+  .copy-btn{background:var(--panel-2); color:var(--text);}
+  .copy-btn:hover{border-color:var(--muted-2);}
+  .primary-btn{background:var(--amber); color:#1a1305; border-color:var(--amber);}
+  .primary-btn:hover{filter:brightness(1.08);}
+  .primary-btn:disabled{opacity:0.4; cursor:not-allowed;}
+  .ghost-btn{background:transparent; color:var(--text);}
+  .ghost-btn:hover{border-color:var(--muted-2);}
+
+  .invite-note{font-size:12px; color:var(--muted-2); margin-top:2px;}
+  .error{color:var(--red); font-size:13px; margin-top:8px;}
+
+  .seat-pick{display:flex; gap:14px; margin-top:22px;}
+  .seat-card{
+    flex:1; border:1px solid var(--border); border-radius:10px; padding:18px; background:var(--panel-2);
+    cursor:pointer; transition:border-color .15s;
+  }
+  .seat-card:hover{border-color:var(--amber);}
+  .seat-card h3{margin:0 0 4px; font-family:var(--mono); font-size:16px;}
+  .seat-card p{margin:0; color:var(--muted); font-size:12px; line-height:1.5;}
+  .seat-card .bal{font-family:var(--mono); color:var(--green); margin-top:10px; font-size:14px;}
+  .hidden{display:none !important;}
+
+  /* ---------- main app ---------- */
+  .section-title{
+    font-family:var(--mono); font-size:13px; text-transform:uppercase; letter-spacing:1px;
+    color:var(--muted); margin:0 0 12px;
+  }
+  .balances{display:flex; gap:14px; margin-bottom:26px; flex-wrap:wrap;}
+  .bal-card{
+    flex:1 1 180px; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px 18px;
+  }
+  .bal-card.me{border-color:var(--amber-dim); background:#151109;}
+  .bal-card .name{font-weight:600; font-size:14px; display:flex; justify-content:space-between; align-items:center; gap:6px;}
+  .bal-card .name .tag{font-size:10px; color:var(--amber); border:1px solid var(--amber-dim); padding:1px 6px; border-radius:10px; text-transform:uppercase;}
+  .presence{display:flex; align-items:center; gap:5px; font-size:10px; font-family:var(--mono); color:var(--muted-2); text-transform:uppercase; letter-spacing:0.5px;}
+  .presence .pdot{width:6px; height:6px; border-radius:50%; background:var(--muted-2);}
+  .presence.online{color:var(--green);}
+  .presence.online .pdot{background:var(--green); box-shadow:0 0 5px var(--green); animation:pulse 1.6s infinite;}
+  .online-count{font-size:12px; color:var(--muted); margin-bottom:10px; font-family:var(--mono);}
+  .bal-row{display:flex; justify-content:space-between; margin-top:10px; font-family:var(--mono); font-size:13px;}
+  .bal-row .label{color:var(--muted);}
+  .bal-row .avail{color:var(--green);}
+  .bal-row .locked{color:var(--amber);}
+
+  .create-card{margin-bottom:30px;}
+  .form-grid{display:grid; grid-template-columns: 2fr 1fr 1fr; gap:12px; margin-top:12px;}
+  .form-grid label{font-size:11px; color:var(--muted); display:block; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px;}
+  .form-grid input{
+    width:100%; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    padding:9px 10px; border-radius:6px; font-family:var(--sans); font-size:13px;
+  }
+  .form-actions{display:flex; justify-content:space-between; align-items:center; margin-top:14px;}
+  .form-actions .hint{font-size:12px; color:var(--muted-2);}
+
+  .proposals{display:flex; flex-direction:column; gap:10px;}
+  .prop{
+    border:1px solid var(--border); background:var(--panel); border-radius:10px; padding:16px 18px;
+  }
+  .prop-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .prop-title{font-weight:600; font-size:15px;}
+  .prop-meta{font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:5px;}
+  .status{
+    font-family:var(--mono); font-size:11px; padding:3px 9px; border-radius:20px; text-transform:uppercase;
+    letter-spacing:0.5px; white-space:nowrap;
+  }
+  .status.OPEN{color:var(--blue); border:1px solid #24457a; background:#0f1c33;}
+  .status.MATCHED{color:var(--amber); border:1px solid var(--amber-dim); background:#221a0c;}
+  .status.SETTLED{color:var(--green); border:1px solid var(--green-dim); background:#0f231a;}
+  .prop-bottom{display:flex; justify-content:space-between; align-items:center; margin-top:14px;}
+  .prop-people{font-size:12px; color:var(--muted); line-height:1.6;}
+  .prop-people b{color:var(--text); font-weight:500;}
+  .accept-btn{background:var(--green); color:#08210f; border-color:var(--green);}
+  .accept-btn:hover{filter:brightness(1.08);}
+  .accept-btn:disabled, .ghost-btn:disabled{opacity:0.35; cursor:not-allowed;}
+  .empty{color:var(--muted-2); font-size:13px; padding:20px 0;}
+
+  .outcome-box{
+    margin-top:12px; padding-top:12px; border-top:1px dashed var(--border);
+  }
+  .outcome-box .q{font-size:12px; color:var(--muted); margin-bottom:8px;}
+  .outcome-btns{display:flex; gap:8px; flex-wrap:wrap;}
+  .outcome-btns button{
+    font-size:12px; padding:7px 12px; border-radius:6px; border:1px solid var(--border);
+    background:var(--panel-2); color:var(--text); cursor:pointer;
+  }
+  .outcome-btns button.picked{border-color:var(--amber); color:var(--amber);}
+  .outcome-btns button:hover{border-color:var(--muted-2);}
+  .vote-status{font-size:11px; color:var(--muted-2); margin-top:8px; font-family:var(--mono);}
+
+  /* ---------- ledger ---------- */
+  .ledger-head{
+    padding:16px 18px 12px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .ledger-head .t{font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--muted);}
+  .ledger-head .live{font-size:10px; color:var(--green); display:flex; align-items:center; gap:5px; font-family:var(--mono);}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:.3;}100%{opacity:1;}}
+
+  .ledger-list{flex:1; overflow-y:auto; padding:10px 12px;}
+  .entry{
+    border-bottom:1px solid var(--border); padding:11px 6px; font-family:var(--mono); font-size:12px;
+    animation:slidein .35s ease;
+  }
+  @keyframes slidein{from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);}}
+  .entry .row1{display:flex; justify-content:space-between; align-items:center;}
+  .entry .type{
+    font-size:10px; padding:2px 7px; border-radius:4px; letter-spacing:0.5px;
+  }
+  .entry .type.LOCK{background:var(--amber-dim); color:var(--amber);}
+  .entry .type.PAYOUT{background:var(--green-dim); color:var(--green);}
+  .entry .amt{font-weight:700;}
+  .entry .amt.neg{color:var(--red);}
+  .entry .amt.pos{color:var(--green);}
+  .entry .row2{display:flex; justify-content:space-between; color:var(--muted); font-size:11px; margin-top:4px;}
+  .ledger-empty{color:var(--muted-2); font-size:12px; padding:30px 14px; text-align:center; line-height:1.6;}
+  .ledger-footer{
+    border-top:1px solid var(--border); padding:12px 18px; font-family:var(--mono); font-size:11px; color:var(--muted-2);
+  }
+
+  .footer-note{
+    margin-top:40px; padding-top:18px; border-top:1px solid var(--border); color:var(--muted-2); font-size:12px; line-height:1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="mark">SIDE<span>BET</span></div>
+    <div class="url">opendeck.ca/sidebet-sim · simulation</div>
+  </div>
+  <div class="session" id="sessionBar">
+    <span class="pill">not signed in</span>
+  </div>
+</div>
+
+<!-- ================= GATE ================= -->
+<div class="gate" id="gate">
+  <h1>Side<span>Bet</span></h1>
+  <p class="sub">Peer‑to‑peer, skill‑based prediction market. One person proposes a wager, another accepts it, and once the outcome is known, the platform settles it. This is a working simulation of that create → accept → settle loop, running against an in‑browser ledger.</p>
+
+  <div class="card">
+    <div class="section-title" style="margin-bottom:6px;">Permanent invite link</div>
+    <p style="color:var(--muted); font-size:13px; margin-top:0;">This is the standing link the two demo players use to reach the proposal board. It never expires and always resolves to the same table.</p>
+    <div class="invite-row">
+      <input id="inviteLink" readonly value="https://opendeck.ca/sidebet-sim?invite=SB-DEMO-2026">
+      <button class="copy-btn" onclick="copyInvite()">Copy</button>
+    </div>
+    <div class="invite-row">
+      <input id="inviteInput" placeholder="Paste invite link or enter token" value="">
+      <button class="primary-btn" onclick="checkInvite()">Enter table</button>
+    </div>
+    <div class="invite-note">Token: <b style="color:var(--muted);">SB-DEMO-2026</b> — already filled in above for you. In production this link would map to a real signed invite, not a static token.</div>
+    <div class="error hidden" id="inviteError">That invite token isn't valid. Use SB-DEMO-2026, or paste the link above.</div>
+  </div>
+
+  <div class="seat-pick hidden" id="seatPick">
+    <div class="seat-card" onclick="enterAs('p1')">
+      <h3>Enter as Alex</h3>
+      <p>Player One. Use this seat in one browser tab or window.</p>
+      <div class="bal">$1,000.00 available</div>
+    </div>
+    <div class="seat-card" onclick="enterAs('p2')">
+      <h3>Enter as Sam</h3>
+      <p>Player Two. Open a second tab with the same invite link to play against Alex.</p>
+      <div class="bal">$1,000.00 available</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px;">
+    <div class="section-title" style="margin-bottom:6px;">Open invite link</div>
+    <p style="color:var(--muted); font-size:13px; margin-top:0;">A second, always-on link for anyone else to join under their own name. No approval step — entering a username creates the account and drops you straight onto the board.</p>
+    <div class="invite-row">
+      <input id="openInviteLink" readonly value="https://opendeck.ca/sidebet-sim?invite=SB-OPEN-JOIN">
+      <button class="copy-btn" onclick="copyOpenInvite()">Copy</button>
+    </div>
+    <div class="invite-row">
+      <input id="usernameInput" placeholder="Choose a username" maxlength="20">
+      <button class="primary-btn" onclick="joinWithUsername()">Create account &amp; join</button>
+    </div>
+    <div class="invite-note">Starting balance is $1,000.00, same as the seeded seats. Names must be unique among the players currently at the table.</div>
+    <div class="error hidden" id="usernameError"></div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div class="layout hidden" id="app">
+  <div class="main">
+
+    <div class="online-count" id="onlineCount"></div>
+    <div class="balances" id="balances"></div>
+
+    <div class="card create-card">
+      <div class="section-title">Propose a wager</div>
+      <div class="form-grid">
+        <div>
+          <label>Prediction</label>
+          <input id="fTitle" placeholder="e.g. Raptors win tonight">
+        </div>
+        <div>
+          <label>Odds (you : acceptor)</label>
+          <input id="fOdds" placeholder="e.g. 2:1">
+        </div>
+        <div>
+          <label>Acceptor's stake ($)</label>
+          <input id="fStake" type="number" min="1" step="1" value="100">
+        </div>
+      </div>
+      <div class="form-actions">
+        <span class="hint">At 2:1 odds and a $100 acceptor stake, you lock $200 — 2× the acceptor. Winner takes the full combined pot. Your side locks immediately on posting.</span>
+        <button class="primary-btn" onclick="createProposal()">Post proposal</button>
+      </div>
+    </div>
+
+    <div class="section-title">Open board</div>
+    <div class="proposals" id="proposalList"></div>
+
+    <div class="footer-note">
+      This simulation implements the create → accept → settle lifecycle from the SideBet spec: every balance change is paired with a ledger row (LOCK on create/accept, PAYOUT on settle). Two fixes vs. the as‑built spec: stakes/payouts are derived from what the creator actually enters instead of hardcoded $100/$200 constants, and settlement requires <b>both</b> players to agree on the same winner (mirroring the mutual‑agreement pattern from the production build) rather than one side unilaterally declaring the result.
+    </div>
+  </div>
+
+  <div class="ledger-col">
+    <div class="ledger-head">
+      <div class="t">Ledger</div>
+      <div class="live" id="liveIndicator"><span class="dot"></span>live</div>
+    </div>
+    <div class="ledger-list" id="ledgerList">
+      <div class="ledger-empty" id="ledgerEmpty">No transactions yet.<br>Post a proposal to lock the first stake.</div>
+    </div>
+    <div class="ledger-footer" id="ledgerFooter">0 entries</div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// API base — same-origin by default. nginx proxies /sidebet-sim/api/ to the
+// sidebet-sim-server process (see DEPLOY.md). Override by setting
+// window.SIDEBET_API_BASE before this script runs, if ever needed.
+// ---------------------------------------------------------------------------
+const API_BASE = window.SIDEBET_API_BASE || '/sidebet-sim/api';
+const SEAT_STORAGE_KEY = 'sidebet_seat_v1';
+const POLL_MS = 2000;
+
+const state = {
+  users: {},        // id -> {id, name, balance, locked, online}
+  proposals: [],
+  ledger: [],
+  currentSeat: null,
+  seenLedgerIds: new Set(),
+  connected: false,
+};
+
+let pollTimer = null;
+
+function fmt(n){
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + Math.abs(n).toFixed(2);
+}
+
+function fmtTimestamp(iso){
+  const d = new Date(iso);
+  const datePart = d.toLocaleDateString([], {year:'numeric', month:'short', day:'2-digit'});
+  const timePart = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  return `${datePart} · ${timePart}`;
+}
+
+async function api(path, opts = {}){
+  const res = await fetch(API_BASE + path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  let data;
+  try { data = await res.json(); } catch(e){ data = {}; }
+  if(!res.ok){
+    const err = new Error(data.error || `Request failed (${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+function applySnapshot(snap){
+  state.connected = true;
+  state.users = {};
+  snap.users.forEach(u => { state.users[u.id] = u; });
+  state.proposals = snap.proposals;
+  state.ledger = snap.ledger;
+  setLiveIndicator(true);
+}
+
+function setLiveIndicator(ok){
+  const el = document.getElementById('liveIndicator');
+  if(!el) return;
+  el.innerHTML = ok
+    ? '<span class="dot"></span>live'
+    : '<span class="dot" style="background:var(--red); box-shadow:0 0 6px var(--red);"></span>reconnecting';
+}
+
+// ---------------------------------------------------------------------------
+// Session persistence — keeps a browser signed in as the same player across
+// reloads, without needing a password. Each *browser* remembers one seat.
+// ---------------------------------------------------------------------------
+function saveSeat(id, name){
+  localStorage.setItem(SEAT_STORAGE_KEY, JSON.stringify({ id, name }));
+}
+function loadSavedSeat(){
+  try { return JSON.parse(localStorage.getItem(SEAT_STORAGE_KEY) || 'null'); }
+  catch(e){ return null; }
+}
+function clearSavedSeat(){
+  localStorage.removeItem(SEAT_STORAGE_KEY);
+}
+
+async function boot(){
+  try {
+    const snap = await api('/state');
+    applySnapshot(snap);
+  } catch(e){
+    setLiveIndicator(false);
+  }
+
+  const saved = loadSavedSeat();
+  if(saved && state.users[saved.id]){
+    try{
+      const res = await api('/enter', { method:'POST', body:{ seat: saved.id } });
+      applySnapshot(res.state);
+      enterAs(saved.id, { skipPersist:true });
+    } catch(e){
+      clearSavedSeat();
+    }
+  }
+
+  renderSessionBar();
+  startPolling();
+}
+
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const snap = state.currentSeat
+        ? await api('/heartbeat', { method:'POST', body:{ seat: state.currentSeat } })
+        : await api('/state');
+      applySnapshot(snap);
+      render();
+      renderSessionBar();
+    } catch(e){
+      setLiveIndicator(false);
+    }
+  }, POLL_MS);
+}
+
+// ---------------------------------------------------------------------------
+// Gate / invite screens
+// ---------------------------------------------------------------------------
+function copyInvite(){
+  const el = document.getElementById('inviteLink');
+  el.select(); el.setSelectionRange(0, 999);
+  try{ document.execCommand('copy'); }catch(e){}
+  if(navigator.clipboard){ navigator.clipboard.writeText(el.value).catch(()=>{}); }
+}
+
+function extractToken(v){
+  v = (v||'').trim();
+  const m = v.match(/invite=([A-Za-z0-9\-]+)/);
+  return m ? m[1] : v;
+}
+
+const TOKEN = "SB-DEMO-2026";
+
+function checkInvite(){
+  const raw = document.getElementById('inviteInput').value || document.getElementById('inviteLink').value;
+  const token = extractToken(raw);
+  const errEl = document.getElementById('inviteError');
+  if(token === TOKEN){
+    errEl.classList.add('hidden');
+    document.getElementById('seatPick').classList.remove('hidden');
+  } else {
+    errEl.classList.remove('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('inviteInput').value = document.getElementById('inviteLink').value;
+  boot();
+});
+
+function copyOpenInvite(){
+  const el = document.getElementById('openInviteLink');
+  el.select(); el.setSelectionRange(0, 999);
+  try{ document.execCommand('copy'); }catch(e){}
+  if(navigator.clipboard){ navigator.clipboard.writeText(el.value).catch(()=>{}); }
+}
+
+async function joinWithUsername(){
+  const input = document.getElementById('usernameInput');
+  const errEl = document.getElementById('usernameError');
+  const name = input.value.trim();
+
+  if(!name){
+    errEl.textContent = 'Enter a username first.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  try{
+    const res = await api('/join', { method:'POST', body:{ name } });
+    applySnapshot(res.state);
+    errEl.classList.add('hidden');
+    input.value = '';
+    enterAs(res.seat.id);
+  } catch(e){
+    errEl.textContent = e.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+async function enterAs(seat, opts = {}){
+  // The two seeded demo seats (Alex/Sam) are entered directly from the gate;
+  // everyone else arrives here via joinWithUsername(). Either way we ask the
+  // server to confirm the seat exists before dropping into the app.
+  try{
+    const res = await api('/enter', { method:'POST', body:{ seat } });
+    applySnapshot(res.state);
+  } catch(e){
+    alert(e.message);
+    return;
+  }
+
+  state.currentSeat = seat;
+  if(!opts.skipPersist){
+    saveSeat(seat, state.users[seat]?.name);
+  }
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  renderSessionBar();
+  render();
+}
+
+function switchSeat(nextId){
+  const ids = Object.keys(state.users);
+  const target = nextId || ids[(ids.indexOf(state.currentSeat) + 1) % ids.length];
+  enterAs(target);
+}
+
+function signOut(){
+  state.currentSeat = null;
+  clearSavedSeat();
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('gate').classList.remove('hidden');
+  document.getElementById('seatPick').classList.add('hidden');
+  document.getElementById('inviteError').classList.add('hidden');
+  document.getElementById('usernameError').classList.add('hidden');
+  renderSessionBar();
+}
+
+function renderSessionBar(){
+  const bar = document.getElementById('sessionBar');
+  if(!state.currentSeat || !state.users[state.currentSeat]){
+    bar.innerHTML = '<span class="pill">not signed in</span>';
+    return;
+  }
+  const u = state.users[state.currentSeat];
+  const others = Object.values(state.users).filter(x => x.id !== state.currentSeat);
+  const switcher = others.length && others.length <= 3
+    ? others.map(o => `<button class="btn-link" onclick="switchSeat('${o.id}')">↳ ${escapeHtml(o.name)}</button>`).join('')
+    : '';
+  bar.innerHTML = `
+    <span class="pill you">signed in as ${escapeHtml(u.name)}</span>
+    ${switcher}
+    <button class="btn-link" onclick="signOut()">Sign out</button>
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// Actions — each one calls the server, then re-renders from its response so
+// every open tab (yours and everyone else's) converges on the same state.
+// ---------------------------------------------------------------------------
+function parseOdds(str){
+  const m = (str||'').match(/^\s*(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)\s*$/);
+  if(!m) return { ratio:1, label:'1:1' };
+  const a = parseFloat(m[1]), b = parseFloat(m[2]);
+  if(!a || !b) return { ratio:1, label:'1:1' };
+  return { ratio: a / b, label: `${a}:${b}` };
+}
+
+async function createProposal(){
+  const seat = state.currentSeat;
+  const title = document.getElementById('fTitle').value.trim();
+  const oddsStr = document.getElementById('fOdds').value.trim() || '1:1';
+  const baseStake = parseFloat(document.getElementById('fStake').value);
+
+  if(!title){ alert('Give the prediction a title.'); return; }
+  if(!baseStake || baseStake <= 0){ alert('Stake must be a positive number.'); return; }
+
+  try{
+    const snap = await api('/proposals', { method:'POST', body:{ seat, title, odds: oddsStr, stake: baseStake } });
+    applySnapshot(snap);
+    document.getElementById('fTitle').value='';
+    document.getElementById('fOdds').value='';
+    document.getElementById('fStake').value='100';
+    render();
+  } catch(e){
+    alert(e.message);
+  }
+}
+
+async function acceptProposal(pid){
+  try{
+    const snap = await api(`/proposals/${pid}/accept`, { method:'POST', body:{ seat: state.currentSeat } });
+    applySnapshot(snap);
+    render();
+  } catch(e){
+    alert(e.message);
+  }
+}
+
+async function vote(pid, winnerId){
+  try{
+    const snap = await api(`/proposals/${pid}/vote`, { method:'POST', body:{ seat: state.currentSeat, winnerId } });
+    applySnapshot(snap);
+    render();
+  } catch(e){
+    alert(e.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------------
+function render(){
+  const seat = state.currentSeat;
+
+  const onlineCount = Object.values(state.users).filter(u => u.online).length;
+  const totalCount = Object.values(state.users).length;
+  document.getElementById('onlineCount').textContent =
+    `${onlineCount} online now · ${totalCount} player${totalCount===1?'':'s'} at the table`;
+
+  const balEl = document.getElementById('balances');
+  balEl.innerHTML = Object.values(state.users).map(u => `
+    <div class="bal-card ${u.id === seat ? 'me' : ''}">
+      <div class="name">
+        <span>${escapeHtml(u.name)} <span class="tag ${u.id === seat ? '' : 'hidden'}">you</span></span>
+        <span class="presence ${u.online ? 'online' : ''}"><span class="pdot"></span>${u.online ? 'online' : 'offline'}</span>
+      </div>
+      <div class="bal-row"><span class="label">Available</span><span class="avail">${fmt(u.balance)}</span></div>
+      <div class="bal-row"><span class="label">Locked</span><span class="locked">${fmt(u.locked)}</span></div>
+    </div>
+  `).join('');
+
+  const list = document.getElementById('proposalList');
+  if(state.proposals.length === 0){
+    list.innerHTML = '<div class="empty">No proposals posted yet. Be the first to post one above.</div>';
+  } else {
+    list.innerHTML = state.proposals.map(p => renderProposal(p, seat)).join('');
+  }
+
+  const ledgerList = document.getElementById('ledgerList');
+  if(state.ledger.length === 0){
+    ledgerList.innerHTML = '<div class="ledger-empty" id="ledgerEmpty">No transactions yet.<br>Post a proposal to lock the first stake.</div>';
+  } else {
+    ledgerList.innerHTML = state.ledger.map(e => {
+      const u = state.users[e.userId];
+      const cls = e.amount < 0 ? 'neg' : 'pos';
+      const sign = e.amount < 0 ? '' : '+';
+      const isNew = !state.seenLedgerIds.has(e.id);
+      state.seenLedgerIds.add(e.id);
+      return `
+        <div class="entry" style="${isNew ? '' : 'animation:none;'}">
+          <div class="row1">
+            <span class="type ${e.type}">${e.type}</span>
+            <span class="amt ${cls}">${sign}${fmt(e.amount)}</span>
+          </div>
+          <div class="row2">
+            <span>${u ? escapeHtml(u.name) : 'unknown'} · ${escapeHtml(e.note)}</span>
+            <span>${fmtTimestamp(e.createdAt)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  document.getElementById('ledgerFooter').textContent =
+    `${state.ledger.length} ${state.ledger.length===1?'entry':'entries'} · permanent log, newest first · balances reconcile after every LOCK/PAYOUT`;
+}
+
+function renderProposal(p, seat){
+  const creator = state.users[p.creator];
+  const opponent = p.opponent ? state.users[p.opponent] : null;
+  if(!creator) return '';
+  const canAccept = p.status === 'OPEN' && seat && seat !== p.creator;
+  const isParticipant = seat === p.creator || seat === p.opponent;
+
+  let outcomeHtml = '';
+  if(p.status === 'MATCHED' && isParticipant && opponent){
+    const myVote = p.votes[seat];
+    outcomeHtml = `
+      <div class="outcome-box">
+        <div class="q">Both players must pick the same winner to settle:</div>
+        <div class="outcome-btns">
+          <button class="${myVote===creator.id?'picked':''}" onclick="vote(${p.id}, '${creator.id}')">${escapeHtml(creator.name)} won</button>
+          <button class="${myVote===opponent.id?'picked':''}" onclick="vote(${p.id}, '${opponent.id}')">${escapeHtml(opponent.name)} won</button>
+        </div>
+        <div class="vote-status">${escapeHtml(creator.name)}: ${p.votes[p.creator] ? 'voted ' + escapeHtml(state.users[p.votes[p.creator]]?.name || '?') : 'no vote yet'} · ${escapeHtml(opponent.name)}: ${p.votes[p.opponent] ? 'voted ' + escapeHtml(state.users[p.votes[p.opponent]]?.name || '?') : 'no vote yet'}</div>
+      </div>`;
+  } else if(p.status === 'MATCHED' && !isParticipant && opponent){
+    outcomeHtml = `<div class="outcome-box"><div class="q">Waiting on ${escapeHtml(creator.name)} and ${escapeHtml(opponent.name)} to agree on an outcome.</div></div>`;
+  } else if(p.status === 'SETTLED'){
+    const winner = state.users[p.result];
+    outcomeHtml = `<div class="outcome-box"><div class="q">Settled — <b style="color:var(--green)">${escapeHtml(winner ? winner.name : '?')}</b> won ${fmt(p.creatorStake + p.opponentStake)}.</div></div>`;
+  }
+
+  return `
+    <div class="prop">
+      <div class="prop-top">
+        <div>
+          <div class="prop-title">${escapeHtml(p.title)}</div>
+          <div class="prop-meta">odds ${escapeHtml(p.odds)} · ${escapeHtml(creator.name)} risks ${fmt(p.creatorStake)} · acceptor risks ${fmt(p.opponentStake)} · payout ${fmt(p.creatorStake + p.opponentStake)}</div>
+        </div>
+        <span class="status ${p.status}">${p.status}</span>
+      </div>
+      <div class="prop-bottom">
+        <div class="prop-people">
+          Posted by <b>${escapeHtml(creator.name)}</b>${opponent ? ` · matched with <b>${escapeHtml(opponent.name)}</b>` : ''}
+        </div>
+        ${canAccept ? `<button class="accept-btn" onclick="acceptProposal(${p.id})">Accept for ${fmt(p.opponentStake)}</button>` : ''}
+      </div>
+      ${outcomeHtml}
+    </div>`;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>

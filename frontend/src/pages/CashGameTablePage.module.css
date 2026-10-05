@@ -1,0 +1,88 @@
+.roomContainer {
+  width: 100%;
+  height: calc(100vh - 120px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-6);
+}
+
+.canvas {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  height: 500px;
+}
+
+/* Plush Blue Velvet Felt Base */
+.felt {
+  position: absolute;
+  top: 10%;
+  left: 4%;
+  width: 92%;
+  height: 80%;
+  background: radial-gradient(circle, #1a426e 0%, #0d233d 100%);
+  border: 14px solid #221a15; /* Hardwood rail bumper */
+  border-radius: 240px;       /* Standard poker table ellipse */
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.9), 0 16px 32px rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Elegant inner dashed betting line utilizing your brass theme tokens */
+.feltInnerRing {
+  width: 94%;
+  height: 92%;
+  border: 2px dashed rgba(212, 175, 55, 0.2); 
+  border-radius: 220px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.metaText {
+  text-align: center;
+}
+
+.metaText h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--color-brass-bright);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.metaText p {
+  margin: var(--space-2) 0 0 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+/* Absolute Seating Node Overlays */
+.seatNode {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+}
+
+.playerCard {
+  min-width: 130px;
+  border-color: var(--color-brass) !important;
+}
+
+.playerName {
+  display: block;
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #fff;
+  margin-bottom: var(--space-1);
+}
+
+.playerChips {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-brass-bright);
+  font-family: var(--font-mono);
+}

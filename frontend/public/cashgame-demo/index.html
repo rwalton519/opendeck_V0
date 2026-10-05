@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Cash Game Demo — opendeck.ca/cashgame-demo</title>
+<style>
+  /*
+    OPENDECK "night table" UI — matches opendeck-table.html: near-black
+    background, gold monospace HUD, blue felt oval with a dashed betting
+    line, OPENDECK / CASH GAME DEMO watermark. Ported here from the
+    standalone reference file onto this page's real, live-data table
+    (seats/cards/chips are still rendered from actual server state - only
+    the visual language changed).
+  */
+  :root {
+    --color-bg: #0a0a0a;
+    --color-surface: #121317;
+    --color-surface-raised: #1a1c21;
+    --color-gold: #d4a72c;
+    --color-gold-bright: #e8c25a;
+    --color-text: #f0f0f0;
+    --color-text-muted: #9aa0a6;
+    --color-border: #2c2e33;
+    --color-danger: #c0392b;
+    --color-success: #3ecf5f;
+    --color-glass-fill: rgba(238, 242, 239, 0.05);
+    --color-glass-border: rgba(212, 167, 44, 0.35);
+
+    --font-display: 'Courier New', Consolas, monospace;
+    --font-body: 'Courier New', Consolas, monospace;
+    --font-mono: 'Courier New', Consolas, monospace;
+
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+    --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+
+    --radius-sm: 6px; --radius-md: 12px; --radius-lg: 20px;
+    --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.55);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(ellipse at center, #141414 0%, #050505 75%);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+  a { color: inherit; }
+  code { font-family: var(--font-mono); }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; flex-direction: column; }
+  .brand .name {
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.04em;
+    color: var(--color-gold-bright);
+  }
+  .brand .sub {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+  .session-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 0.85rem;
+  }
+  .pill {
+    background: var(--color-glass-fill);
+    border: 1px solid var(--color-glass-border);
+    border-radius: 999px;
+    padding: var(--space-1) var(--space-3);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+  .pill b { color: var(--color-gold-bright); }
+  .live-badge-on { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-success); }
+  .live-badge-off { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-text-muted); }
+  .action-error { color: var(--color-danger); font-size: 0.82rem; margin-bottom: var(--space-3); min-height: 1.2em; }
+  .btn-link {
+    background: none; border: none; color: var(--color-text-muted);
+    text-decoration: underline; cursor: pointer; font-size: 0.8rem;
+    font-family: var(--font-body); padding: 0;
+  }
+  .btn-link:hover { color: var(--color-gold-bright); }
+
+  main { max-width: 1080px; margin: 0 auto; padding: var(--space-6); }
+  .hidden { display: none !important; }
+
+  /* ---- shared panel + button ---- */
+  .panel {
+    background: rgba(14, 15, 18, 0.85);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-panel);
+    padding: var(--space-5);
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-weight: 700; font-size: 0.95rem; cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+    font-family: var(--font-body);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-primary {
+    background: transparent;
+    color: var(--color-gold-bright);
+    border: 1px solid var(--color-gold);
+  }
+  .btn-primary:not(:disabled):hover { background: rgba(212, 167, 44, 0.12); }
+  .btn-ghost {
+    background: transparent; color: var(--color-text); border-color: var(--color-border);
+  }
+  .btn-ghost:not(:disabled):hover { border-color: var(--color-gold); color: var(--color-gold-bright); }
+  .btn-success {
+    background: transparent; color: var(--color-success); border-color: var(--color-success);
+  }
+  .btn-success:not(:disabled):hover { background: rgba(62, 207, 95, 0.12); }
+  .btn-sm { padding: var(--space-2) var(--space-3); font-size: 0.8rem; }
+
+  input[type=text] {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+  }
+  input[type=text]:focus { outline: 2px solid var(--color-gold); }
+
+  /* ---------------------- GATE ---------------------- */
+  .gate-hero { max-width: 640px; margin-bottom: var(--space-6); }
+  .eyebrow {
+    font-family: var(--font-mono); color: var(--color-gold-bright);
+    font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: var(--space-3);
+  }
+  .gate-hero h1 {
+    font-weight: 700;
+    font-size: clamp(1.7rem, 4vw, 2.5rem); line-height: 1.15; margin: 0 0 var(--space-3);
+    letter-spacing: 0.01em;
+  }
+  .gate-hero p { color: var(--color-text-muted); line-height: 1.6; margin: 0; }
+
+  .invite-row {
+    display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-4);
+    flex-wrap: wrap;
+  }
+  .invite-row input[type=text] { flex: 1; min-width: 220px; }
+
+  .open-invite { border-top: 1px solid var(--color-border); padding-top: var(--space-5); margin-top: var(--space-2); }
+  .open-invite h2 { font-size: 1.1rem; color: var(--color-gold-bright); margin: 0 0 var(--space-2); }
+  .open-invite p { color: var(--color-text-muted); font-size: 0.85rem; margin: 0 0 var(--space-3); }
+  .open-invite-row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .gate-error { color: var(--color-danger); font-size: 0.85rem; margin-top: var(--space-2); min-height: 1.2em; }
+
+  /* ---------------------- PAGE LAYOUT (table column + history sidebar) ---------------------- */
+  .page-layout {
+    display: flex; align-items: flex-start; gap: var(--space-6);
+    max-width: 1400px; margin: 0 auto; padding: var(--space-6);
+  }
+  .page-layout .table-column { flex: 1; min-width: 0; max-width: 1080px; margin: 0 auto; }
+  .history-sidebar {
+    width: 300px; flex-shrink: 0; position: sticky; top: var(--space-5);
+    max-height: calc(100vh - var(--space-7)); display: flex; flex-direction: column;
+  }
+  .history-panel { display: flex; flex-direction: column; min-height: 0; }
+  .history-title { font-size: 1rem; color: var(--color-gold-bright); margin: 0 0 var(--space-3); }
+  .history-list { overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); }
+  .history-entry {
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3); font-size: 0.8rem; background: var(--color-glass-fill);
+  }
+  .history-entry .h-hand { font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-muted); display: flex; justify-content: space-between; }
+  .history-entry .h-winner { color: var(--color-success); margin-top: 2px; }
+  .history-entry .h-pot { color: var(--color-gold-bright); font-family: var(--font-mono); }
+  @media (max-width: 1100px) {
+    .page-layout { flex-direction: column; padding: var(--space-4); }
+    .page-layout .table-column { max-width: 100%; }
+    .history-sidebar { width: 100%; position: static; max-height: 320px; }
+  }
+
+  /* ---------------------- BETTING ---------------------- */
+  .turn-banner {
+    font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-gold-bright);
+    background: rgba(212,167,44,0.1); border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-3);
+  }
+  .betting-row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--space-4); }
+  .bet-amount-input {
+    width: 90px; background: var(--color-surface-raised); border: 1px solid var(--color-glass-border);
+    color: var(--color-text); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3);
+    font-family: var(--font-mono); font-size: 0.9rem;
+  }
+  .btn-danger { background: transparent; color: var(--color-danger); border-color: var(--color-danger); }
+  .btn-danger:not(:disabled):hover { background: rgba(192,57,43,0.12); }
+  .seat-bet-pill {
+    display: inline-block; margin-top: 2px; font-family: var(--font-mono); font-size: 0.72rem;
+    color: var(--color-gold-bright); background: rgba(0,0,0,0.4);
+    border: 1px solid var(--color-glass-border); border-radius: 999px; padding: 1px 8px;
+  }
+  .folded-tag { color: var(--color-text-muted); font-size: 0.72rem; display: block; margin-bottom: var(--space-1); }
+  .busted-tag { color: var(--color-danger); font-size: 0.72rem; display: block; margin-bottom: var(--space-1); }
+  .player-card.is-folded { opacity: 0.45; }
+  .player-card.is-to-act { border-color: var(--color-gold-bright) !important; box-shadow: 0 0 0 2px rgba(232,194,90,0.35); }
+
+  .winner-banner {
+    background: rgba(62,207,95,0.12); border: 1px solid var(--color-success);
+    color: var(--color-success); border-radius: var(--radius-sm); padding: var(--space-3);
+    font-size: 0.9rem; margin-bottom: var(--space-4);
+  }
+  .controls-row { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4); }
+  .street-row {
+    display: flex; gap: var(--space-4); align-items: baseline; margin-bottom: var(--space-4);
+    font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-text-muted);
+    text-transform: uppercase; letter-spacing: 0.05em; flex-wrap: wrap;
+  }
+  .pot-value-inline { color: var(--color-gold-bright); font-weight: 700; }
+  .hole-row { display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-4); }
+  .hole-row .card { min-width: 48px; height: 66px; font-size: 1.25rem; border-color: var(--color-gold); }
+  .muted-inline { color: var(--color-text-muted); font-size: 0.85rem; margin-left: var(--space-2); }
+
+  .fairness-panel { border-top: 1px solid var(--color-border); padding-top: var(--space-4); }
+  .fairness-title { font-size: 1rem; color: var(--color-gold-bright); margin: 0 0 var(--space-3); }
+  .fairness-body { display: flex; flex-direction: column; gap: var(--space-3); }
+  .fairness-label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 2px; }
+  .fairness-value { display: block; font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-success); word-break: break-all; }
+  .verified-ok { display: inline-block; margin-top: var(--space-1); font-size: 0.75rem; color: var(--color-success); font-weight: 700; }
+  .verified-pending { display: inline-block; margin-top: var(--space-1); font-size: 0.75rem; color: var(--color-text-muted); }
+  .muted { color: var(--color-text-muted); font-size: 0.85rem; }
+
+  .footer-note {
+    margin-top: var(--space-7); padding-top: var(--space-4); border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted); font-size: 0.78rem; line-height: 1.6;
+  }
+  .footer-note code { color: var(--color-gold-bright); }
+
+  /* ============================================================
+     TABLE — night table geometry, matching opendeck-table.html
+     ============================================================ */
+  .room-container { display:flex; justify-content:center; align-items:center; padding: var(--space-4) 0 var(--space-7); }
+  .canvas { position:relative; width:100%; max-width:1080px; aspect-ratio: 16/9; height:auto; min-height:480px; max-height:720px; }
+
+  .rail {
+    position:absolute; inset: 12% 8%;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #2c2c2c 0%, #1a1a1a 55%, #0a0a0a 100%);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), inset 0 0 0 2px #050505;
+  }
+  .felt {
+    position:absolute; inset: 15.6% 10.6%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 30%, #256bb8 0%, #123d7a 55%, #0a2856 100%);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.55), inset 0 0 4px rgba(255,255,255,0.08);
+  }
+  .felt-inner-ring {
+    position:absolute; inset: 24% 17%;
+    border-radius: 50%;
+    border: 2px dashed rgba(212, 167, 44, 0.55);
+    pointer-events: none;
+  }
+  .brand-watermark {
+    position:absolute; left:50%; top:56%; transform:translate(-50%,-50%);
+    text-align:center; color: rgba(255,255,255,0.06); font-weight:700;
+    letter-spacing:.28em; white-space:nowrap; pointer-events:none;
+    font-size: clamp(1.1rem, 3vw, 2.4rem);
+  }
+  .brand-watermark span { display:block; margin-top:6px; font-size:.4em; letter-spacing:.32em; }
+
+  /* corner HUD, overlaid on the canvas itself */
+  .hud-left {
+    position:absolute; top: 1%; left: 0.5%; z-index: 30; line-height: 1.5;
+  }
+  .hud-left .hud-title { color: var(--color-gold-bright); font-weight:700; font-size: clamp(11px, 1.5vw, 18px); letter-spacing: 1px; }
+  .hud-left .hud-stakes { color: #f0f0f0; font-size: clamp(9px, 1vw, 13px); margin-top: 2px; }
+  .hud-left .hud-hand { color: var(--color-text-muted); font-size: clamp(9px, 0.95vw, 12px); margin-top: 2px; }
+
+  .hud-right {
+    position:absolute; top: 1%; right: 0.5%; z-index: 30;
+    display:flex; flex-direction:column; align-items:flex-end; gap: 8px;
+  }
+  .hud-right .btn { padding: 7px 14px; font-size: clamp(9px, 0.9vw, 12px); }
+  .status-box {
+    background: rgba(10,11,13,0.85);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: clamp(8px, 0.85vw, 11px);
+    text-align: right;
+    color: #d8dade;
+  }
+  .status-box .dot-row { display:flex; align-items:center; gap:6px; justify-content:flex-end; }
+  .status-box .dot { width:7px; height:7px; border-radius:50%; background: var(--color-text-muted); }
+  .status-box .dot.live { background: var(--color-success); box-shadow: 0 0 6px var(--color-success); }
+  .status-box .hud-players { color: var(--color-text-muted); margin-top:3px; }
+
+  .table-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:8; pointer-events:none; }
+  .table-pot { display:flex; flex-direction:column; align-items:center; gap:4px; min-height:42px; }
+  .pot-label { color:rgba(255,255,255,.7); font-weight:700; font-size:.6rem; letter-spacing:.14em; }
+  .pot-value { display:inline-block; padding:5px 14px; border:1px solid var(--color-border); border-radius:8px; background:rgba(14,15,18,.9); color:var(--color-gold-bright); font-weight:700; font-size:.85rem; }
+  .table-community { display:flex; align-items:center; justify-content:center; gap:8px; min-height:66px; margin-top:8px; }
+  .table-community .muted { padding:5px 10px; border-radius:999px; background:rgba(8,24,39,.5); color:rgba(255,255,255,.45); font-weight:700; font-size:.55rem; }
+
+  .card {
+    width: clamp(34px, 4vw, 56px) !important; min-width: clamp(34px, 4vw, 56px) !important;
+    height: clamp(48px, 5.5vw, 78px) !important;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:6px; background:linear-gradient(145deg,#fff,#e7e4dc); border:2px solid #fff;
+    box-shadow:0 4px 9px rgba(0,0,0,.42); color:#17202a; font-weight:700; font-size:.9rem; font-family: var(--font-mono);
+  }
+  .card.red { color:#b62929 !important; }
+  .card-slot {
+    width: clamp(34px, 4vw, 56px); height: clamp(48px, 5.5vw, 78px);
+    border-radius: 6px; border: 3px solid #eef1f6;
+    background: repeating-linear-gradient(45deg, #2c5aa8, #2c5aa8 3px, #26509c 3px, #26509c 6px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  }
+
+  .seat-node { position:absolute; transform:translate(-50%,-50%); z-index:25; text-align:center; width: 132px; }
+  .player-card {
+    min-width:126px !important; padding:6px 12px !important;
+    border:1px solid var(--color-gold) !important; border-radius:22px !important;
+    background: rgba(18,19,23,.96) !important; box-shadow:0 8px 18px rgba(0,0,0,.45) !important;
+  }
+  .player-name { display:block; font-size:.76rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; }
+  .player-chips { display:block; margin-top:2px; color:var(--color-gold-bright); font-size:.72rem; font-family: var(--font-mono); }
+  .player-tag { display:block; color:var(--color-text-muted); font-size:.58rem; margin-top:2px; }
+  .player-cards-mini { display:flex; gap:3px; justify-content:center; margin-top:5px; }
+  .mini-card {
+    width:24px; height:33px; border-radius:4px; background:linear-gradient(145deg,#fff,#e7e4dc);
+    color:#17202a; border:1px solid #fff; font-size:.55rem; font-family: var(--font-mono);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .mini-card.back {
+    background: repeating-linear-gradient(45deg, #2c5aa8, #2c5aa8 3px, #26509c 3px, #26509c 6px);
+    border: 2px solid #eef1f6;
+  }
+
+  .chip-stack { position:relative !important; width:46px !important; height:34px !important; margin:0 auto 4px !important; display:block !important; }
+  .chip-stack-label { display:none !important; }
+  .chip-pile { position:relative !important; width:46px; height:34px; margin:auto; display:block; }
+  .chip-pile .chip {
+    position:absolute !important; bottom:0; width:22px !important; height:22px !important;
+    border-radius:50%; border: 2px dashed rgba(255,255,255,0.55);
+    box-shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  .chip-pile .chip:nth-child(3n+1){ left:0; background: radial-gradient(circle at 35% 30%, #e05a5a, #8f1f1f); }
+  .chip-pile .chip:nth-child(3n+2){ left:14px; background: radial-gradient(circle at 35% 30%, #4d7fe0, #1c3a80); }
+  .chip-pile .chip:nth-child(3n){ left:28px; bottom:6px; background: radial-gradient(circle at 35% 30%, #4fca6f, #14602c); }
+
+  .dealer-button, .dealer-badge {
+    width:26px !important; height:26px !important; border-radius:50% !important;
+    background: radial-gradient(circle at 35% 30%, #fff, #d8d8d8) !important; color:#222 !important;
+    border:none !important; display:flex !important; align-items:center; justify-content:center;
+    font-weight:700; font-size:.7rem !important; font-family: var(--font-mono); box-shadow:0 2px 6px rgba(0,0,0,.5);
+  }
+  .dealer-button { position:absolute; top: 71.5%; left: 61.5%; z-index: 22; }
+
+  .flight-layer { position:absolute; inset:0; pointer-events:none; overflow:visible; z-index:60; }
+  .flight-chip {
+    position:absolute; width:22px; height:22px; margin:-11px 0 0 -11px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #f1d071, #8e641b); border: 2px dashed rgba(255,255,255,.55);
+    box-shadow:0 2px 5px rgba(0,0,0,.55); animation: staticChipFlight .72s cubic-bezier(.2,.75,.25,1) forwards;
+  }
+  @keyframes staticChipFlight {
+    0%{opacity:0;transform:scale(.7)} 12%{opacity:1}
+    45%{transform:translate(calc(var(--dx)*.48),calc(var(--dy)*.48 - 30px)) rotate(120deg)}
+    100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.7) rotate(250deg)}
+  }
+
+  .backtest-link {
+    position: absolute; bottom: calc(-1 * var(--space-6)); right: var(--space-2);
+    color: var(--color-text-muted); font-size: 0.78rem; font-family: var(--font-mono);
+    text-decoration: none; border-bottom: 1px dashed var(--color-glass-border); z-index: 25;
+  }
+  .backtest-link:hover { color: var(--color-gold-bright); border-bottom-color: var(--color-gold); }
+
+  @media (max-width: 900px) {
+    .canvas { min-height: 390px; }
+    .seat-node { width: 108px; }
+    .player-card { min-width: 96px !important; padding: 5px 8px !important; }
+    .player-name { font-size: .62rem; }
+    .player-chips { font-size: .58rem; }
+    .card { font-size: .7rem; }
+  }
+  @media (max-width: 620px) {
+    .canvas { min-height: 300px; aspect-ratio: 4/3; }
+    .seat-node { width: 82px; }
+    .player-card { min-width: 72px !important; padding: 4px 5px !important; }
+    .player-name { font-size: .52rem; }
+    .player-chips { font-size: .5rem; }
+    .table-community { gap:3px; min-height: 45px; }
+    .brand-watermark { font-size: .9rem; }
+    .hud-left .hud-title { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="name">OPENDECK</span>
+      <span class="sub">opendeck.ca/cashgame-demo — play money, no account required</span>
+    </div>
+    <div class="session-bar">
+      <span id="connBadge" class="live-badge-off">○ Connecting…</span>
+      <span id="sessionBar"></span>
+    </div>
+  </div>
+
+  <div class="page-layout">
+  <main class="table-column">
+
+    <!-- =================== GATE =================== -->
+    <div id="gate">
+      <div class="gate-hero">
+        <p class="eyebrow">Cash game demo · $1 / $2 · $500 stacks</p>
+        <h1>Sit down without an account.</h1>
+        <p>
+          A 7-seat table running the same shuffle protocol as the real thing — an HMAC-SHA256-seeded
+          Fisher-Yates shuffle, deck committed before the cards are dealt and the seed revealed after
+          each hand so anyone can check it. Enter a unique username and take any open seat. Every player
+          connected to this page sees the same occupied seats, cards, pot and betting action live.
+        </p>
+        <div class="invite-row">
+          <input type="text" id="permaLink" readonly />
+          <button class="btn btn-ghost btn-sm" onclick="copyLink('permaLink')">Copy permanent link</button>
+        </div>
+      </div>
+
+      <div class="panel open-invite">
+        <h2>Join with a username</h2>
+        <p>Anyone with this page's link can create a unique username and get the same $500 play-money stack. No password — this is a demo table, not a real-money account.</p>
+        <div class="open-invite-row">
+          <input type="text" id="customUsername" placeholder="Pick a username" maxlength="20" />
+          <button class="btn btn-primary" onclick="enterAsCustom()">Create username &amp; join</button>
+        </div>
+        <div class="gate-error" id="gateError"></div>
+      </div>
+    </div>
+
+    <!-- =================== APP =================== -->
+    <div id="app" class="hidden">
+
+      <div class="room-container">
+        <div class="canvas">
+          <div class="rail"></div>
+          <div class="felt"></div>
+          <div class="felt-inner-ring"></div>
+          <div class="brand-watermark">OPENDECK<span>CASH GAME DEMO</span></div>
+
+          <div class="hud-left">
+            <div class="hud-title">NO LIMIT HOLD'EM</div>
+            <div class="hud-stakes">$1.00 / $2.00</div>
+            <div class="hud-hand" id="handLine">Hand #0 · waiting to deal</div>
+          </div>
+          <div class="hud-right">
+            <button class="btn btn-ghost" onclick="signOut()">Leave Table</button>
+            <div class="status-box">
+              <div class="dot-row"><span class="dot" id="statusDot"></span> <span id="statusText">Connecting…</span></div>
+              <div class="hud-players" id="playersCount"></div>
+            </div>
+          </div>
+
+          <div class="table-center">
+            <div class="table-pot"><div class="pot-label">POT</div><div class="pot-value" id="tablePotValue">$0.00</div></div>
+            <div class="table-community" id="communityRow"><span class="muted">COMMUNITY CARDS</span></div>
+          </div>
+          <div id="seatsLayer"></div>
+          <div class="dealer-button">D</div>
+          <div class="flight-layer" id="flightLayer"></div>
+          <a class="backtest-link" href="/backtest?mode=demo" target="_blank" rel="noopener">Backtest your hand?</a>
+        </div>
+      </div>
+
+      <div class="below-table">
+        <div class="panel">
+          <div class="street-row" id="streetRow"></div>
+
+          <div class="action-error" id="actionError"></div>
+          <div id="winnerBanner"></div>
+
+          <div>
+            <span class="fairness-label">Your hole cards</span>
+            <div class="hole-row" id="holeRow"></div>
+          </div>
+
+          <div id="turnBanner"></div>
+
+          <div class="betting-row hidden" id="bettingRow">
+            <button class="btn btn-danger btn-sm" id="foldBtn" onclick="foldAction()">Fold</button>
+            <button class="btn btn-ghost btn-sm" id="checkCallBtn" onclick="checkOrCallAction()">Check</button>
+            <input type="text" inputmode="decimal" class="bet-amount-input" id="betAmountInput" placeholder="0.00" />
+            <button class="btn btn-primary btn-sm" id="betRaiseBtn" onclick="betOrRaiseAction()">Bet</button>
+          </div>
+
+          <div class="controls-row">
+            <button class="btn btn-primary" id="dealBtn" onclick="dealHand()">Deal Next Hand</button>
+            <button class="btn btn-ghost" id="rebuyBtn" onclick="rebuySelf()">Rebuy $500</button>
+          </div>
+        </div>
+
+        <div class="panel fairness-panel">
+          <h2 class="fairness-title">Fairness Proof</h2>
+          <div id="fairnessBody"></div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        This table is synced across tabs and devices: all 7 seats, the deck
+        commit/reveal, and hand results are computed once by a small dedicated backend endpoint
+        (<code>/cashgame-demo/*</code>, see <code>routers/cashGameDemoRouter.js</code>) and pushed to
+        every open tab live over Server-Sent Events — open a second tab or sign in as Ach elsewhere and
+        you'll see the same table update in both places. Live table state (seats, current hand) has no
+        database and resets whenever the backend restarts, but the <b>Hand History</b> panel is different:
+        every finished hand is written to a permanent <code>demo_hand_history</code> database record
+        (shared with the <a href="/heads-up" target="_blank" rel="noopener">Heads Up demo</a> table) that
+        survives restarts, so it's a real historical ledger rather than a per-session log. The deck order
+        (2→A per suit, ♠♥♦♣), the HMAC-SHA256-seeded Fisher-Yates shuffle, and the SHA-256 commit/reveal
+        are the same algorithm the production fairness panel uses — just running server-side now instead
+        of duplicated per-tab, which is also what lets hole cards actually stay private between seats
+        until showdown. Betting runs a normal four-street structure (preflop, flop, turn, river) with
+        fold/check/call/bet/raise available on your turn; hands that don't get through to showdown end
+        the moment everyone but one player has folded. Blinds are posted and rotated automatically. Three
+        house seats play automatically so the table isn't empty; they rebuy on their own when busted.
+      </div>
+
+    </div>
+
+  </main>
+
+  <aside class="history-sidebar" id="historySidebar">
+    <div class="panel history-panel">
+      <h2 class="history-title">Hand History</h2>
+      <p class="muted" id="historyEmpty">No completed hands yet.</p>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </aside>
+  </div>
+
+<script>
+/* ============================================================
+   Backend base URL
+   Confirmed against production directly - curl https://opendeck.ca/webapp/api/health
+   and curl https://opendeck.ca/webapp/health both returned the SPA's
+   index.html (nginx has no route for either yet), so this is coordinated
+   with a real nginx location block for /webapp/ -> the backend, not
+   guessed. See the nginx config note shipped alongside this change. A
+   `?api=` override is available for local/dev testing.
+   ============================================================ */
+const DEMO_API_BASE = (() => {
+  const override = new URLSearchParams(location.search).get('api');
+  if (override) return override.replace(/\/$/, '');
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    return 'http://localhost:8000/cashgame-demo';
+  }
+  return `${location.origin}/webapp/cashgame-demo`;
+})();
+
+/* Seven seats, evenly spaced around the oval (51.43° apart), seat 0 at
+   bottom-center. Same ellipse math driving the table graphic itself. */
+const SEAT_COORDINATES = {
+  0: { top: '92%',   left: '50%' },
+  1: { top: '76.2%', left: '16.3%' },
+  2: { top: '40.6%', left: '8.1%' },
+  3: { top: '12.2%', left: '31.3%' },
+  4: { top: '12.2%', left: '68.7%' },
+  5: { top: '40.6%', left: '91.9%' },
+  6: { top: '76.2%', left: '83.7%' },
+};
+const SEAT_COUNT = 7;
+const SUIT_SYMBOL = { s: '♠', h: '♥', d: '♦', c: '♣' };
+const HAND_ENDPOINT_ERROR = "Couldn't reach the demo table backend.";
+
+/* ============================================================
+   Local (per-tab) state - the actual game state lives on the server
+   and arrives via SSE; this only tracks this tab's identity, the last
+   snapshot received, and connection status.
+   ============================================================ */
+function getClientId() {
+  let id = sessionStorage.getItem('cgdemo_client_id');
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    sessionStorage.setItem('cgdemo_client_id', id);
+  }
+  return id;
+}
+const CLIENT_ID = getClientId();
+
+const HISTORY_KEY = 'cgdemo_hand_history_cache'; // short-lived render cache only, not the source of truth
+function loadHandHistoryCache() {
+  try { return JSON.parse(sessionStorage.getItem(HISTORY_KEY)) || []; }
+  catch (e) { return []; }
+}
+function saveHandHistoryCache(list) {
+  try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 50))); } catch (e) {}
+}
+
+const state = {
+  myIdentity: null, // { id, username } once /join succeeds
+  snapshot: null,   // last SSE "state" payload
+  connected: false,
+  // The permanent, continuously-updating ledger (models/demo_hand_history.js
+  // via GET /cashgame-demo/history and, once connected, every SSE snapshot's
+  // `handHistory` field). Seeded from sessionStorage only so the panel isn't
+  // empty for one paint while the initial fetch is in flight - the fetch
+  // below immediately overwrites it with the server's actual record, which
+  // is the real source of truth and outlives this tab/session.
+  handHistory: loadHandHistoryCache(),
+  previousSnapshot: null,
+};
+
+/* ============================================================
+   API helpers
+   ============================================================ */
+async function apiPost(path, body) {
+  let res;
+  try {
+    res = await fetch(`${DEMO_API_BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: CLIENT_ID, ...body }),
+    });
+  } catch (err) {
+    throw new Error(HAND_ENDPOINT_ERROR);
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || 'Request failed.');
+  return data;
+}
+
+let eventSource = null;
+let heartbeatTimer = null;
+let leavingPage = false;
+
+function startHeartbeat() {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  if (!state.myIdentity) return;
+  const send = () => {
+    if (!state.myIdentity || leavingPage) return;
+    fetch(`${DEMO_API_BASE}/heartbeat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: CLIENT_ID }),
+      keepalive: true,
+    }).catch(() => {});
+  };
+  send();
+  heartbeatTimer = setInterval(send, 10000);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+function notifyLeave() {
+  if (!state.myIdentity || leavingPage) return;
+  leavingPage = true;
+  stopHeartbeat();
+  const body = JSON.stringify({ clientId: CLIENT_ID });
+  try {
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: 'application/json' });
+      navigator.sendBeacon(`${DEMO_API_BASE}/leave`, blob);
+    } else {
+      fetch(`${DEMO_API_BASE}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  } catch (_) {}
+}
+
+window.addEventListener('pagehide', notifyLeave);
+
+function animateChipFlights(previous, next) {
+  if (!previous || !next) return;
+  const layer = $('flightLayer');
+  const canvas = document.querySelector('.canvas');
+  if (!layer || !canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const coords = SEAT_COORDINATES;
+  const pot = { x: rect.width * 0.5, y: rect.height * 0.5 };
+  const addFlight = (from, to, count) => {
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('span');
+      el.className = 'flight-chip';
+      el.style.left = `${from.x}px`; el.style.top = `${from.y}px`;
+      el.style.setProperty('--dx', `${to.x - from.x}px`); el.style.setProperty('--dy', `${to.y - from.y}px`);
+      layer.appendChild(el); setTimeout(() => el.remove(), 800);
+    }
+  };
+  for (let i = 0; i < SEAT_COUNT; i++) {
+    const before = previous.seats?.[i], after = next.seats?.[i];
+    if (!before || !after) continue;
+    const delta = Number(before.chips || 0) - Number(after.chips || 0);
+    if (delta > 0.01) {
+      const p = coords[i]; const from = { x: rect.width * parseFloat(p.left) / 100, y: rect.height * parseFloat(p.top) / 100 };
+      addFlight(from, pot, delta >= 100 ? 5 : delta >= 25 ? 4 : delta >= 5 ? 3 : 2);
+    }
+  }
+}
+
+function connectStream() {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource(`${DEMO_API_BASE}/stream?clientId=${encodeURIComponent(CLIENT_ID)}`);
+  eventSource.addEventListener('state', (ev) => {
+    state.connected = true;
+    const nextSnapshot = JSON.parse(ev.data);
+    animateChipFlights(state.snapshot, nextSnapshot);
+    state.previousSnapshot = state.snapshot;
+    state.snapshot = nextSnapshot;
+    // The server's snapshot carries the authoritative, persistent hand
+    // history tail (models/demo_hand_history.js) - this is what keeps the
+    // ledger correct and in sync across every open tab/device without this
+    // tab doing any of its own dedupe/append logic.
+    if (Array.isArray(state.snapshot.handHistory)) {
+      state.handHistory = state.snapshot.handHistory;
+      saveHandHistoryCache(state.handHistory);
+    }
+    render();
+  });
+  eventSource.onopen = () => { state.connected = true; renderConnBadge(); };
+  eventSource.onerror = () => {
+    // Browsers auto-retry EventSource connections; just reflect status.
+    state.connected = false;
+    renderConnBadge();
+  };
+}
+
+/** GET /history - used before joining (or if the SSE stream hasn't opened
+ * yet) so the Hand History panel is a fixture of the page itself, not
+ * something that only appears once a visitor sits down. */
+async function refreshHandHistoryFromServer() {
+  try {
+    const res = await fetch(`${DEMO_API_BASE}/history`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data.history)) {
+      state.handHistory = data.history;
+      saveHandHistoryCache(state.handHistory);
+      render();
+    }
+  } catch (e) {
+    // Non-fatal - the panel just keeps showing whatever it last had
+    // (server cache, or empty on a first-ever visit).
+  }
+}
+
+/* ============================================================
+   Render helpers
+   ============================================================ */
+function $(id) { return document.getElementById(id); }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function fmt(n) { return `$${Number(n).toFixed(2)}`; }
+
+function cardHtml(card) {
+  const symbol = SUIT_SYMBOL[card.suit];
+  const red = card.suit === 'h' || card.suit === 'd';
+  return `<span class="card ${red ? 'red' : ''}">${escapeHtml(card.rank)}${symbol}</span>`;
+}
+function miniCardHtml(card) {
+  if (!card) return `<span class="mini-card back"></span>`;
+  const symbol = SUIT_SYMBOL[card.suit];
+  const red = card.suit === 'h' || card.suit === 'd';
+  return `<span class="mini-card" style="color:${red ? '#e0655f' : 'inherit'}">${escapeHtml(card.rank)}${symbol}</span>`;
+}
+/* FIX: this was called from renderSeats() below but never defined anywhere
+   in this file - a ReferenceError on the very first occupied seat, which
+   aborted renderSeats() before it ever wrote to #seatsLayer (and, since
+   renderSeats() runs first inside render(), silently killed every render
+   after it too). Builds the same stacked chip-pile markup the "OPENDECK
+   TABLE UI V3" CSS above already styles (.chip-pile > .chip, 3-colour
+   cycle), sized by how big the stack is. */
+function chipTierCount(amount) {
+  const n = Number(amount) || 0;
+  if (n <= 0) return 0;
+  if (n < 25) return 1;
+  if (n < 100) return 2;
+  if (n < 300) return 3;
+  if (n < 750) return 4;
+  return 5;
+}
+function chipPileHtml(amount, label) {
+  const count = chipTierCount(amount);
+  if (!count) return '';
+  const chips = Array.from({ length: count }).map(() => `<span class="chip"></span>`).join('');
+  return `<div class="chip-pile" aria-label="${escapeHtml(label || 'chips')} ${fmt(amount)}">${chips}</div>`;
+}
+function showActionError(message) {
+  $('actionError').textContent = message || '';
+  if (message) setTimeout(() => { if ($('actionError').textContent === message) $('actionError').textContent = ''; }, 4000);
+}
+
+/* ============================================================
+   Gate flow
+   ============================================================ */
+function buildPermaLink() {
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.searchParams.set('invite', 'CG-OPEN-JOIN');
+  return url.toString();
+}
+function copyLink(inputId) {
+  const el = $(inputId);
+  el.select();
+  el.setSelectionRange(0, 99999);
+  try { document.execCommand('copy'); } catch (e) {}
+  if (navigator.clipboard) navigator.clipboard.writeText(el.value).catch(() => {});
+}
+
+async function enterAsCustom() {
+  const raw = $('customUsername').value.trim();
+  const err = $('gateError');
+  if (!raw) { err.textContent = 'Enter a username.'; return; }
+  if (!/^[A-Za-z0-9_]{2,20}$/.test(raw)) {
+    err.textContent = 'Usernames are 2-20 characters: letters, numbers, underscore.';
+    return;
+  }
+  try {
+    const result = await apiPost('/join', { kind: 'custom', username: raw });
+    state.myIdentity = { id: result.identityId, username: result.username };
+    leavingPage = false;
+    err.textContent = '';
+    enterApp();
+  } catch (e) {
+    err.textContent = e.message;
+  }
+}
+
+function enterApp() {
+  $('gate').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  connectStream();
+  startHeartbeat();
+  render();
+}
+
+function signOut() {
+  if (state.myIdentity) {
+    const body = JSON.stringify({ clientId: CLIENT_ID });
+    fetch(`${DEMO_API_BASE}/leave`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  }
+  stopHeartbeat();
+  leavingPage = true;
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  state.myIdentity = null;
+  state.snapshot = null;
+  state.connected = false;
+  $('app').classList.add('hidden');
+  $('gate').classList.remove('hidden');
+  $('customUsername').value = '';
+  // Hand History is a page-level fixture, not tied to being signed in - it
+  // stays visible and keeps whatever it last loaded from the server.
+  render();
+}
+
+/* ============================================================
+   Actions
+   ============================================================ */
+async function takeSeat(seatIndex) {
+  try {
+    await apiPost('/take-seat', { seatIndex });
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+async function rebuySelf() {
+  try {
+    await apiPost('/rebuy', {});
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+async function dealHand() {
+  if (!state.snapshot || state.snapshot.mySeatIndex == null || state.snapshot.dealerSeat !== state.snapshot.mySeatIndex) {
+    showActionError('Only the designated Dealer can deal the next hand.');
+    return;
+  }
+  try {
+    await apiPost('/deal', {});
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+
+/* ---- Betting: fold / check / call / bet / raise, one action per turn ---- */
+async function foldAction() {
+  try {
+    await apiPost('/action', { type: 'fold' });
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+async function checkOrCallAction() {
+  const snap = state.snapshot;
+  if (!snap) return;
+  const mySeat = snap.mySeatIndex != null ? snap.seats[snap.mySeatIndex] : null;
+  const toCall = Math.max(0, (snap.currentBet || 0) - (mySeat?.currentBet || 0));
+  try {
+    await apiPost('/action', { type: toCall > 0 ? 'call' : 'check' });
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+async function betOrRaiseAction() {
+  const snap = state.snapshot;
+  if (!snap) return;
+  const raw = $('betAmountInput').value.trim();
+  const amount = Number(raw);
+  if (!raw || Number.isNaN(amount) || amount <= 0) {
+    showActionError('Enter a bet amount.');
+    return;
+  }
+  const isRaise = (snap.currentBet || 0) > 0;
+  try {
+    await apiPost('/action', { type: isRaise ? 'raise' : 'bet', amount });
+    $('betAmountInput').value = '';
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+function render() {
+  renderSessionBar();
+  renderConnBadge();
+  renderHandHistory(); // permanent fixture: renders regardless of gate/app state
+  if ($('app').classList.contains('hidden')) return;
+  const snap = state.snapshot;
+  if (!snap) return;
+
+  renderSeats(snap);
+  renderHandLine(snap);
+  renderStreetRow(snap);
+  renderTablePot(snap);
+  renderCommunity(snap);
+  renderHoleCards(snap);
+  renderFairness(snap);
+  renderControls(snap);
+  renderWinnerBanner(snap);
+  renderBettingControls(snap);
+  renderPlayersCount(snap);
+}
+
+function renderConnBadge() {
+  const badge = $('connBadge');
+  if (badge) {
+    if (!state.myIdentity) { badge.textContent = ''; }
+    else {
+      badge.className = state.connected ? 'live-badge-on' : 'live-badge-off';
+      badge.textContent = state.connected ? '● Live' : '○ Reconnecting…';
+    }
+  }
+  const dot = $('statusDot');
+  const text = $('statusText');
+  if (dot && text) {
+    dot.classList.toggle('live', state.connected);
+    text.textContent = state.connected ? 'Connected' : 'Connecting…';
+  }
+}
+
+function renderPlayersCount(snap) {
+  const el = $('playersCount');
+  if (!el) return;
+  const occupied = snap.seats.filter(Boolean).length;
+  el.textContent = `${occupied} / ${snap.seatCount || SEAT_COUNT} players`;
+}
+
+function renderSessionBar() {
+  const bar = $('sessionBar');
+  if (!state.myIdentity) { bar.innerHTML = ''; return; }
+  bar.innerHTML = `
+    <span class="pill">Signed in as <b>${escapeHtml(state.myIdentity.username)}</b></span>
+    <button class="btn-link" onclick="signOut()">Sign out</button>
+  `;
+}
+
+function renderSeats(snap) {
+  const layer = $('seatsLayer');
+  let html = '';
+  for (let i = 0; i < SEAT_COUNT; i++) {
+    const coords = SEAT_COORDINATES[i];
+    const seat = snap.seats[i];
+    const style = `top:${coords.top}; left:${coords.left};`;
+    if (!seat) {
+      const canJoin = !!state.myIdentity && snap.mySeatIndex == null && !snap.dealing;
+      html += `<div class="seat-node" style="${style}">
+        <button class="btn btn-primary btn-sm" ${canJoin ? '' : 'disabled'} onclick="takeSeat(${i})">+ Take Seat</button>
+      </div>`;
+    } else {
+      const holeHtml = seat.holeCards.length
+        ? `<div class="player-cards-mini">${seat.holeCards.map((c) => miniCardHtml(c)).join('')}</div>`
+        : '';
+      const isToAct = snap.toActSeatIndex === i && !snap.dealing;
+      const cardClasses = ['panel', 'player-card', seat.folded ? 'is-folded' : '', isToAct ? 'is-to-act' : ''].filter(Boolean).join(' ');
+      const betPill = seat.currentBet > 0 ? `<span class="seat-bet-pill">Bet ${fmt(seat.currentBet)}</span>` : '';
+      html += `<div class="seat-node" style="${style}">
+        <div class="chip-stack"><span class="chip-stack-label">Stack</span>${chipPileHtml(seat.chips, 'stack')}</div>
+        <div class="${cardClasses}">
+          ${seat.busted ? `<span class="busted-tag">Busted</span>` : ''}
+          ${seat.folded ? `<span class="folded-tag">Folded</span>` : ''}
+          <span class="player-name">${escapeHtml(seat.username)}${seat.isMine ? ' (you)' : ''}</span>
+          <span class="player-chips">${fmt(seat.chips)}</span>
+          ${i === snap.dealerSeat ? `<span class="player-tag">Dealer</span>` : ''}
+          ${betPill}
+          ${holeHtml}
+        </div>
+      </div>`;
+    }
+  }
+  layer.innerHTML = html;
+}
+
+function renderHandLine(snap) {
+  const el = $('handLine');
+  if (!el) return;
+  el.textContent = snap.handNumber === 0
+    ? 'Hand #0 · waiting to deal'
+    : `Hand #${snap.handNumber} · ${snap.street}`;
+}
+
+const STREET_LABEL = { preflop: 'Pre-Flop', flop: 'Flop', turn: 'Turn', river: 'River', showdown: 'Showdown' };
+
+function renderStreetRow(snap) {
+  const label = STREET_LABEL[snap.street] || snap.street;
+  const toCallBadge = (typeof snap.currentBet === 'number' && snap.currentBet > 0)
+    ? `<span>To call: ${fmt(snap.currentBet)}</span>` : '';
+  $('streetRow').innerHTML = `
+    <span>Hand #${snap.handNumber || '—'}</span>
+    <span>${escapeHtml(label)}</span>
+    <span class="pot-value-inline">Pot: ${fmt(snap.pot)}</span>
+    ${toCallBadge}
+  `;
+}
+
+function renderTablePot(snap) {
+  const el = $('tablePotValue');
+  if (el) el.textContent = fmt(snap.pot);
+}
+
+function renderCommunity(snap) {
+  const row = $('communityRow');
+  if (!snap.communityCards.length) {
+    row.innerHTML = `<span class="muted">COMMUNITY CARDS</span>`;
+    return;
+  }
+  const dealt = snap.communityCards.map((c) => cardHtml(c));
+  const remaining = Math.max(0, 5 - snap.communityCards.length);
+  const placeholders = Array.from({ length: remaining }).map(() => `<span class="card-slot"></span>`);
+  row.innerHTML = [...dealt, ...placeholders].join('');
+}
+
+function renderHoleCards(snap) {
+  const row = $('holeRow');
+  const seat = snap.mySeatIndex != null ? snap.seats[snap.mySeatIndex] : null;
+  if (!seat) {
+    row.innerHTML = `<span class="card-slot"></span><span class="card-slot"></span><span class="muted-inline">Take a seat to be dealt in.</span>`;
+    return;
+  }
+  if (seat.holeCards.length === 0) {
+    row.innerHTML = `<span class="card-slot"></span><span class="card-slot"></span><span class="muted-inline">Waiting for the next hand.</span>`;
+    return;
+  }
+  row.innerHTML = seat.holeCards.map((c) => cardHtml(c)).join('');
+}
+
+function renderFairness(snap) {
+  const body = $('fairnessBody');
+  const f = snap.fairness;
+  if (!f) { body.innerHTML = `<p class="muted">Deal a hand to see the deck commit hash.</p>`; return; }
+  body.innerHTML = `
+    <div class="fairness-body">
+      <div>
+        <span class="fairness-label">Deck commit</span>
+        <code class="fairness-value">${f.commitHash}</code>
+      </div>
+      ${f.revealSeed ? `
+        <div>
+          <span class="fairness-label">Reveal seed</span>
+          <code class="fairness-value">${f.revealSeed}</code>
+          <span class="${f.verified ? 'verified-ok' : 'verified-pending'}">${f.verified ? 'Verified ✓ (sha256(seed) === commit hash)' : 'Unverified'}</span>
+        </div>
+      ` : `<p class="muted">Seed reveals once this hand completes.</p>`}
+    </div>
+  `;
+}
+
+function renderControls(snap) {
+  const dealBtn = $('dealBtn');
+  dealBtn.disabled = !snap.canDeal;
+  dealBtn.textContent = snap.dealing ? 'Dealing…' : 'Deal Next Hand';
+  dealBtn.title = snap.dealerSeat != null && snap.mySeatIndex !== snap.dealerSeat
+    ? 'Only the designated Dealer can deal the next hand.'
+    : '';
+
+  const seat = snap.mySeatIndex != null ? snap.seats[snap.mySeatIndex] : null;
+  $('rebuyBtn').classList.toggle('hidden', !(seat && seat.chips <= 0));
+}
+
+function renderWinnerBanner(snap) {
+  $('winnerBanner').innerHTML = snap.lastWinnerText
+    ? `<div class="winner-banner">${escapeHtml(snap.lastWinnerText)}</div>`
+    : '';
+}
+
+/* ============================================================
+   Betting controls — shown only when it's this tab's seat to act.
+   Expects the SSE snapshot to carry: toActSeatIndex, currentBet
+   (the table's current bet to match this street), minRaise, and
+   per-seat currentBet/folded/allIn flags. Controls stay hidden
+   (rather than guessing) if the server hasn't sent that shape yet.
+   ============================================================ */
+function renderBettingControls(snap) {
+  const row = $('bettingRow');
+  const banner = $('turnBanner');
+  const mySeat = snap.mySeatIndex != null ? snap.seats[snap.mySeatIndex] : null;
+  const hasBettingFields = typeof snap.toActSeatIndex !== 'undefined';
+
+  if (!hasBettingFields || !mySeat || mySeat.folded || snap.dealing || snap.street === 'showdown') {
+    row.classList.add('hidden');
+    banner.innerHTML = '';
+    return;
+  }
+
+  const isMyTurn = snap.toActSeatIndex === snap.mySeatIndex;
+  const toCall = Math.max(0, (snap.currentBet || 0) - (mySeat.currentBet || 0));
+
+  if (!isMyTurn) {
+    row.classList.add('hidden');
+    const actingSeat = snap.toActSeatIndex != null ? snap.seats[snap.toActSeatIndex] : null;
+    banner.innerHTML = actingSeat
+      ? `<div class="turn-banner">Waiting on ${escapeHtml(actingSeat.username)}…</div>`
+      : '';
+    return;
+  }
+
+  banner.innerHTML = `<div class="turn-banner">Your turn${toCall > 0 ? ` · ${fmt(toCall)} to call` : ' · check or bet'}</div>`;
+  row.classList.remove('hidden');
+
+  const checkCallBtn = $('checkCallBtn');
+  checkCallBtn.textContent = toCall > 0 ? `Call ${fmt(toCall)}` : 'Check';
+  checkCallBtn.disabled = toCall > mySeat.chips;
+
+  const betRaiseBtn = $('betRaiseBtn');
+  betRaiseBtn.textContent = (snap.currentBet || 0) > 0 ? 'Raise to' : 'Bet';
+  betRaiseBtn.disabled = mySeat.chips <= toCall;
+
+  const input = $('betAmountInput');
+  if (!input.dataset.userEdited) {
+    const suggested = (snap.currentBet || 0) > 0
+      ? Math.min(mySeat.chips + mySeat.currentBet, (snap.currentBet || 0) + (snap.minRaise || snap.currentBet || 2))
+      : Math.min(mySeat.chips, snap.minRaise || 2);
+    input.value = suggested ? suggested.toFixed(2) : '';
+  }
+  input.max = mySeat.chips + mySeat.currentBet;
+  if (!input.dataset.bound) {
+    input.addEventListener('input', () => { input.dataset.userEdited = '1'; });
+    input.dataset.bound = '1';
+  }
+}
+
+/* ============================================================
+   Hand history — a permanent, continuously-updating ledger backed by
+   models/demo_hand_history.js (shared with /heads-up), not a per-tab
+   session log. See refreshHandHistoryFromServer() and connectStream()
+   above for how state.handHistory is kept in sync.
+   ============================================================ */
+
+function renderHandHistory() {
+  const list = $('historyList');
+  const empty = $('historyEmpty');
+  if (!state.handHistory.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  list.innerHTML = state.handHistory.map((h) => `
+    <div class="history-entry">
+      <div class="h-hand"><span>Hand #${h.handNumber}</span><span>${escapeHtml(STREET_LABEL[h.endedOnStreet] || h.endedOnStreet)}</span></div>
+      <div class="h-winner">${escapeHtml(h.winnerText)}</div>
+      <div class="h-pot">Pot: ${fmt(h.pot)}</div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+$('permaLink').value = buildPermaLink();
+render();
+refreshHandHistoryFromServer();
+</script>
+</body>
+</html>

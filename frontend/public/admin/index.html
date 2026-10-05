@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>OpenDeck — Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Same token set as src/styles/tokens.css - see public/cashgame-demo/index.html */
+  :root {
+    --color-bg: #0a0d0c;
+    --color-surface: #121916;
+    --color-surface-raised: #1a2320;
+    --color-brass: #c9a24b;
+    --color-brass-bright: #e3c374;
+    --color-text: #eef2ef;
+    --color-text-muted: #93a39c;
+    --color-border: rgba(238, 242, 239, 0.1);
+    --color-danger: #c0392b;
+    --color-danger-bright: #e0655f;
+    --color-success: #3fbf7f;
+    --color-glass-fill: rgba(238, 242, 239, 0.06);
+    --color-glass-border: rgba(238, 242, 239, 0.16);
+
+    --font-display: "Bebas Neue", "Arial Narrow", sans-serif;
+    --font-body: "Manrope", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+    --space-5: 24px; --space-6: 32px; --space-7: 48px;
+    --radius-sm: 6px; --radius-md: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); min-height: 100vh; }
+  a { color: inherit; }
+  code { font-family: var(--font-mono); }
+  .hidden { display: none !important; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+    padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--color-border); flex-wrap: wrap;
+  }
+  .brand { display: flex; flex-direction: column; }
+  .brand .name { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 0.04em; color: var(--color-brass-bright); }
+  .brand .sub { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-text-muted); }
+  .session-bar { display: flex; align-items: center; gap: var(--space-3); font-size: 0.85rem; }
+  .pill { background: var(--color-glass-fill); border: 1px solid var(--color-glass-border); border-radius: 999px; padding: var(--space-1) var(--space-3); font-family: var(--font-mono); font-size: 0.76rem; }
+  .pill b { color: var(--color-brass-bright); }
+  .btn-link { background: none; border: none; color: var(--color-text-muted); text-decoration: underline; cursor: pointer; font-size: 0.8rem; font-family: var(--font-body); padding: 0; }
+  .btn-link:hover { color: var(--color-brass-bright); }
+
+  main { max-width: 1200px; margin: 0 auto; padding: var(--space-6); }
+
+  .panel {
+    background: var(--color-glass-fill); border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-md); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45); padding: var(--space-5); margin-bottom: var(--space-5);
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); border: 1px solid transparent;
+    font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: var(--font-body);
+    transition: opacity 0.12s ease;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: linear-gradient(180deg, var(--color-brass-bright), var(--color-brass)); color: #1a1305; }
+  .btn-ghost { background: transparent; color: var(--color-text); border-color: var(--color-border); }
+  .btn-ghost:not(:disabled):hover { border-color: var(--color-brass); color: var(--color-brass-bright); }
+  .btn-danger { background: transparent; color: var(--color-danger-bright); border-color: var(--color-danger); }
+  .btn-danger:not(:disabled):hover { background: rgba(192,57,43,0.12); }
+  .btn-success { background: transparent; color: var(--color-success); border-color: var(--color-success); }
+  .btn-success:not(:disabled):hover { background: rgba(63,191,127,0.12); }
+  .btn-sm { padding: var(--space-1) var(--space-3); font-size: 0.76rem; }
+
+  input[type=text], input[type=password] {
+    background: var(--color-surface-raised); border: 1px solid var(--color-glass-border); color: var(--color-text);
+    border-radius: var(--radius-sm); padding: var(--space-3); font-family: var(--font-body); font-size: 0.9rem; width: 100%;
+  }
+  input:focus { outline: 2px solid var(--color-brass); }
+  label { display: block; font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: var(--space-1); }
+  .field { margin-bottom: var(--space-4); }
+
+  /* ---- Login gate ---- */
+  #loginWrap { max-width: 380px; margin: 12vh auto 0; }
+  #loginWrap h1 { font-family: var(--font-display); font-weight: 400; font-size: 2rem; letter-spacing: 0.02em; margin: 0 0 var(--space-2); color: var(--color-brass-bright); }
+  #loginWrap p.lede { color: var(--color-text-muted); font-size: 0.85rem; margin: 0 0 var(--space-5); }
+  .login-error { color: var(--color-danger-bright); font-size: 0.82rem; min-height: 1.2em; margin-top: var(--space-2); }
+
+  /* ---- Dashboard ---- */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5); }
+  .stat-card { padding: var(--space-4); }
+  .stat-card .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: var(--space-2); }
+  .stat-card .value { font-family: var(--font-mono); font-size: 1.5rem; color: var(--color-brass-bright); }
+  .stat-card.warn .value { color: var(--color-danger-bright); }
+
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); flex-wrap: wrap; gap: var(--space-2); }
+  .section-head h2 { margin: 0; font-size: 1.1rem; color: var(--color-brass-bright); font-family: var(--font-display); font-weight: 400; letter-spacing: 0.03em; }
+  .section-actions { display: flex; gap: var(--space-2); align-items: center; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  thead th { text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-glass-border); white-space: nowrap; }
+  tbody td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid rgba(238,242,239,0.05); vertical-align: middle; }
+  tbody tr:hover { background: rgba(238,242,239,0.03); }
+  .mono { font-family: var(--font-mono); font-size: 0.8rem; }
+  .muted { color: var(--color-text-muted); }
+  .credit { color: var(--color-success); }
+  .debit { color: var(--color-danger-bright); }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.7rem; font-family: var(--font-mono); }
+  .tag-frozen { background: rgba(192,57,43,0.15); color: var(--color-danger-bright); border: 1px solid var(--color-danger); }
+  .tag-flagged { background: rgba(227,195,116,0.12); color: var(--color-brass-bright); border: 1px solid var(--color-brass); }
+  .table-scroll { overflow-x: auto; }
+  .empty-row td { text-align: center; color: var(--color-text-muted); padding: var(--space-5); }
+  .toast { position: fixed; bottom: var(--space-5); right: var(--space-5); background: var(--color-surface-raised); border: 1px solid var(--color-glass-border); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); font-size: 0.85rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 50; }
+  .toast.error { border-color: var(--color-danger); color: var(--color-danger-bright); }
+  .toast.success { border-color: var(--color-success); color: var(--color-success); }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="name">♠ TRANSPARENT POKER</span>
+      <span class="sub">opendeck.ca/admin — internal ops dashboard</span>
+    </div>
+    <div class="session-bar" id="sessionBar"></div>
+  </div>
+
+  <main>
+
+    <!-- =================== LOGIN GATE =================== -->
+    <div id="loginWrap">
+      <h1>Admin sign in</h1>
+      <p class="lede">Restricted to authorized OpenDeck staff.</p>
+      <div class="panel">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" autocomplete="current-password" />
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="login()">Sign in</button>
+        <div class="login-error" id="loginError"></div>
+      </div>
+    </div>
+
+    <!-- =================== DASHBOARD =================== -->
+    <div id="dashboard" class="hidden">
+
+      <div class="section-head">
+        <h2>Overview</h2>
+        <div class="section-actions">
+          <span class="muted mono" id="lastRefreshed" style="font-size:0.72rem;"></span>
+          <button class="btn btn-ghost btn-sm" onclick="refreshAll()">Refresh</button>
+        </div>
+      </div>
+      <div class="stat-grid" id="statGrid"></div>
+
+      <!-- ---- Ledger ---- -->
+      <div class="panel">
+        <div class="section-head">
+          <h2>Accounting Ledger</h2>
+          <div class="section-actions">
+            <span class="muted" style="font-size:0.78rem;">All debits &amp; credits, newest first</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadLedger()">Refresh</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>User</th><th>Type</th><th>Direction</th><th>Amount</th><th>Reference</th></tr>
+            </thead>
+            <tbody id="ledgerBody"><tr class="empty-row"><td colspan="6">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div style="margin-top: var(--space-3);">
+          <button class="btn btn-ghost btn-sm" id="ledgerMoreBtn" onclick="loadMoreLedger()">Load more</button>
+        </div>
+      </div>
+
+      <!-- ---- Fraud flags ---- -->
+      <div class="panel">
+        <div class="section-head">
+          <h2>Fraud Review Queue</h2>
+          <div class="section-actions">
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--color-text-muted);margin:0;">
+              <input type="checkbox" id="showResolvedFlags" onchange="loadFraudFlags()" style="width:auto;" /> show resolved
+            </label>
+            <button class="btn btn-ghost btn-sm" onclick="loadFraudFlags()">Refresh</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>User</th><th>Rule</th><th>Message</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="flagsBody"><tr class="empty-row"><td colspan="6">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ---- Pending withdrawals (standard admin content) ---- -->
+      <div class="panel">
+        <div class="section-head">
+          <h2>Pending Withdrawals</h2>
+          <button class="btn btn-ghost btn-sm" onclick="loadWithdrawals()">Refresh</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>User</th><th>Amount</th><th>Method</th><th>Real payout?</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="withdrawalsBody"><tr class="empty-row"><td colspan="6">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ---- Accounts ---- -->
+      <div class="panel">
+        <div class="section-head">
+          <h2>All Accounts</h2>
+          <div class="section-actions">
+            <input type="text" id="accountSearch" placeholder="Filter by username, email, uid, IP…" oninput="renderAccounts()" style="width:260px;" />
+            <button class="btn btn-ghost btn-sm" onclick="loadAccounts()">Refresh</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>UID</th><th>Username</th><th>Email</th><th>Signup IP</th><th>Last login IP</th>
+                <th>Balance</th><th>Total deposits</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="accountsBody"><tr class="empty-row"><td colspan="9">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+<script>
+/* ============================================================
+   Backend base URL - same convention as public/cashgame-demo/index.html
+   ============================================================ */
+const API_BASE = (() => {
+  const override = new URLSearchParams(location.search).get('api');
+  if (override) return override.replace(/\/$/, '');
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    return 'http://localhost:8000';
+  }
+  // Confirmed against production directly - see the nginx config note
+  // shipped alongside this change. Not guessed.
+  return `${location.origin}/webapp`;
+})();
+
+let TOKEN = sessionStorage.getItem('opendeck_admin_token') || null;
+let ledgerOffset = 0;
+const LEDGER_PAGE = 50;
+let accountsCache = [];
+
+function $(id) { return document.getElementById(id); }
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function fmt(n) { return `$${Number(n || 0).toFixed(2)}`; }
+function fmtTime(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
+
+function showToast(message, kind) {
+  const el = $('toast');
+  el.textContent = message;
+  el.className = `toast ${kind || ''}`;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.add('hidden'), 3500);
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  if (res.status === 403 || res.status === 401) {
+    signOut();
+    throw new Error('Session expired - please sign in again.');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || 'Request failed.');
+  return data;
+}
+
+/* ============================================================
+   Auth
+   ============================================================ */
+async function login() {
+  const username = $('username').value.trim();
+  const password = $('password').value;
+  const err = $('loginError');
+  err.textContent = '';
+  if (!username || !password) { err.textContent = 'Enter a username and password.'; return; }
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.token) throw new Error(data.detail || 'Invalid credentials.');
+
+    TOKEN = data.token;
+    sessionStorage.setItem('opendeck_admin_token', TOKEN);
+    $('password').value = '';
+    enterDashboard(username);
+  } catch (e) {
+    err.textContent = e.message;
+  }
+}
+
+function signOut() {
+  TOKEN = null;
+  sessionStorage.removeItem('opendeck_admin_token');
+  $('dashboard').classList.add('hidden');
+  $('loginWrap').classList.remove('hidden');
+  $('sessionBar').innerHTML = '';
+}
+
+function enterDashboard(username) {
+  $('loginWrap').classList.add('hidden');
+  $('dashboard').classList.remove('hidden');
+  $('sessionBar').innerHTML = `
+    <span class="pill">Signed in as <b>${escapeHtml(username || 'admin')}</b></span>
+    <button class="btn-link" onclick="signOut()">Sign out</button>
+  `;
+  refreshAll();
+}
+
+/* ============================================================
+   Load
+   ============================================================ */
+async function refreshAll() {
+  $('lastRefreshed').textContent = `refreshing…`;
+  await Promise.all([loadSummary(), loadAccounts(), loadFraudFlags(), loadWithdrawals(), resetLedger()]);
+  $('lastRefreshed').textContent = `updated ${new Date().toLocaleTimeString()}`;
+}
+
+async function loadSummary() {
+  try {
+    const s = await api('/admin/dashboard/summary');
+    $('statGrid').innerHTML = `
+      ${statCard('Total users', s.total_users)}
+      ${statCard('Frozen accounts', s.frozen_accounts, s.frozen_accounts > 0)}
+      ${statCard('Pending withdrawals', s.pending_withdrawals, s.pending_withdrawals > 0)}
+      ${statCard('Open fraud flags', s.open_fraud_flags, s.open_fraud_flags > 0)}
+      ${statCard('Balance held', fmt(s.total_balance_held))}
+      ${statCard('Total deposits', fmt(s.total_deposits))}
+      ${statCard('Total withdrawals', fmt(s.total_withdrawals))}
+    `;
+  } catch (e) { showToast(e.message, 'error'); }
+}
+function statCard(label, value, warn) {
+  return `<div class="panel stat-card ${warn ? 'warn' : ''}"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div></div>`;
+}
+
+async function resetLedger() {
+  ledgerOffset = 0;
+  $('ledgerBody').innerHTML = `<tr class="empty-row"><td colspan="6">Loading…</td></tr>`;
+  await loadLedger();
+}
+async function loadLedger() {
+  try {
+    const rows = await api(`/admin/dashboard/ledger?limit=${LEDGER_PAGE}&offset=0`);
+    ledgerOffset = rows.length;
+    renderLedgerRows(rows, false);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+async function loadMoreLedger() {
+  try {
+    const rows = await api(`/admin/dashboard/ledger?limit=${LEDGER_PAGE}&offset=${ledgerOffset}`);
+    ledgerOffset += rows.length;
+    renderLedgerRows(rows, true);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+function renderLedgerRows(rows, append) {
+  const body = $('ledgerBody');
+  if (!append) body.innerHTML = '';
+  if (rows.length === 0 && !append) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="6">No ledger entries yet.</td></tr>`;
+    return;
+  }
+  body.insertAdjacentHTML('beforeend', rows.map((r) => `
+    <tr>
+      <td class="mono muted">${fmtTime(r.timestamp)}</td>
+      <td>${escapeHtml(r.username || r.user_id)}</td>
+      <td class="mono">${escapeHtml(r.type)}</td>
+      <td class="${r.direction === 'credit' ? 'credit' : 'debit'}">${r.direction === 'credit' ? '+ credit' : '− debit'}</td>
+      <td class="mono ${r.direction === 'credit' ? 'credit' : 'debit'}">${fmt(r.amount)}</td>
+      <td class="mono muted">${escapeHtml(r.reference || '—')}</td>
+    </tr>
+  `).join(''));
+  $('ledgerMoreBtn').disabled = rows.length < LEDGER_PAGE;
+}
+
+async function loadFraudFlags() {
+  try {
+    const showResolved = $('showResolvedFlags').checked;
+    const qs = showResolved ? '' : '?resolved=false';
+    const rows = await api(`/admin/dashboard/fraud-flags${qs}`);
+    const body = $('flagsBody');
+    if (rows.length === 0) {
+      body.innerHTML = `<tr class="empty-row"><td colspan="6">No ${showResolved ? '' : 'open '}flags.</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map((f) => `
+      <tr>
+        <td class="mono muted">${fmtTime(f.timestamp)}</td>
+        <td>${escapeHtml(f.username || f.user_id)} ${f.is_frozen ? '<span class="tag tag-frozen">frozen</span>' : ''}</td>
+        <td class="mono">${escapeHtml(f.rule)}</td>
+        <td class="muted">${escapeHtml(f.message)}</td>
+        <td>${f.resolved ? '<span class="muted">resolved</span>' : '<span class="tag tag-flagged">open</span>'}</td>
+        <td>
+          ${!f.is_frozen ? `<button class="btn btn-danger btn-sm" onclick="freezeUser('${f.user_id}')">Freeze account</button>` : `<button class="btn btn-success btn-sm" onclick="unfreezeUser('${f.user_id}')">Unfreeze</button>`}
+          ${!f.resolved ? `<button class="btn btn-ghost btn-sm" onclick="resolveFlag(${f.id})">Resolve</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function loadWithdrawals() {
+  try {
+    const rows = await api('/admin/withdrawals/pending');
+    const body = $('withdrawalsBody');
+    if (rows.length === 0) {
+      body.innerHTML = `<tr class="empty-row"><td colspan="6">No pending withdrawals.</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map((w) => `
+      <tr>
+        <td class="mono muted">${fmtTime(w.timestamp)}</td>
+        <td>${escapeHtml(w.user_id)}</td>
+        <td class="mono">${fmt(w.amount)}</td>
+        <td class="mono">${escapeHtml(w.method)}</td>
+        <td>${w.has_real_payout ? '<span class="credit">yes</span>' : '<span class="muted">internal only</span>'}</td>
+        <td>
+          <button class="btn btn-success btn-sm" onclick="approveWithdrawal('${w.id}')">Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectWithdrawal('${w.id}')">Reject</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function loadAccounts() {
+  try {
+    accountsCache = await api('/admin/dashboard/accounts');
+    renderAccounts();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+function renderAccounts() {
+  const q = $('accountSearch').value.trim().toLowerCase();
+  const rows = accountsCache.filter((a) => {
+    if (!q) return true;
+    return [a.uid, a.username, a.email, a.signup_ip, a.last_login_ip].some((v) => String(v || '').toLowerCase().includes(q));
+  });
+  const body = $('accountsBody');
+  if (rows.length === 0) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="9">No matching accounts.</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map((a) => `
+    <tr>
+      <td class="mono muted">${escapeHtml(a.uid)}</td>
+      <td>${escapeHtml(a.username)}</td>
+      <td class="muted">${escapeHtml(a.email)}</td>
+      <td class="mono muted">${escapeHtml(a.signup_ip || '—')}</td>
+      <td class="mono muted">${escapeHtml(a.last_login_ip || '—')}</td>
+      <td class="mono">${fmt(a.balance_available)}${a.balance_locked > 0 ? ` <span class="muted">(+${fmt(a.balance_locked)} locked)</span>` : ''}</td>
+      <td class="mono">${fmt(a.total_deposits)}</td>
+      <td>
+        ${a.is_frozen ? '<span class="tag tag-frozen">frozen</span>' : ''}
+        ${a.open_fraud_flags > 0 ? `<span class="tag tag-flagged">${a.open_fraud_flags} flag${a.open_fraud_flags > 1 ? 's' : ''}</span>` : ''}
+      </td>
+      <td>
+        ${a.is_frozen
+          ? `<button class="btn btn-success btn-sm" onclick="unfreezeUser('${a.uid}')">Unfreeze</button>`
+          : `<button class="btn btn-danger btn-sm" onclick="freezeUser('${a.uid}')">Freeze</button>`}
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* ============================================================
+   Actions
+   ============================================================ */
+async function freezeUser(userId) {
+  try {
+    await api(`/admin/freeze_user?user_id=${encodeURIComponent(userId)}`, { method: 'POST' });
+    showToast(`Account ${userId} frozen.`, 'success');
+    await Promise.all([loadAccounts(), loadFraudFlags(), loadSummary()]);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+async function unfreezeUser(userId) {
+  try {
+    await api(`/admin/unfreeze_user?user_id=${encodeURIComponent(userId)}`, { method: 'POST' });
+    showToast(`Account ${userId} unfrozen.`, 'success');
+    await Promise.all([loadAccounts(), loadFraudFlags(), loadSummary()]);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+async function resolveFlag(id) {
+  try {
+    await api(`/admin/dashboard/fraud-flags/${id}/resolve`, { method: 'POST' });
+    showToast('Flag resolved.', 'success');
+    await Promise.all([loadFraudFlags(), loadSummary()]);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+async function approveWithdrawal(id) {
+  try {
+    await api('/admin/withdrawals/approve', { method: 'POST', body: JSON.stringify({ id: Number(id) }) });
+    showToast(`Withdrawal ${id} approved.`, 'success');
+    await Promise.all([loadWithdrawals(), loadSummary(), resetLedger()]);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+async function rejectWithdrawal(id) {
+  try {
+    await api('/admin/withdrawals/reject', { method: 'POST', body: JSON.stringify({ id: Number(id) }) });
+    showToast(`Withdrawal ${id} rejected.`, 'success');
+    await Promise.all([loadWithdrawals(), loadSummary()]);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+if (TOKEN) {
+  // Token persisted in sessionStorage from an earlier load in this tab -
+  // don't force a re-login, but don't assume it's still valid either;
+  // the first API call will sign out automatically if it's expired.
+  enterDashboard(null);
+} 
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !$('loginWrap').classList.contains('hidden')) login();
+});
+</script>
+</body>
+</html>

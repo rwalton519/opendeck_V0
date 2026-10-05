@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Random Shuffle Test Table — opendeck.ca/RNG-shuffle-tester</title>
+<style>
+  /*
+    Same "night table" visual language as /cashgame-demo and /heads-up
+    (near-black background, gold monospace HUD, blue felt oval), trimmed
+    down to what this page actually needs: no accounts/gate, no chips, no
+    betting UI, no dealer button, no per-street reveal. See the header
+    comment in the <script> block below and
+    services/demo/rngShuffleTesterRoom.js for why.
+  */
+  :root {
+    --color-bg: #0a0a0a;
+    --color-surface: #121317;
+    --color-surface-raised: #1a1c21;
+    --color-gold: #d4a72c;
+    --color-gold-bright: #e8c25a;
+    --color-text: #f0f0f0;
+    --color-text-muted: #9aa0a6;
+    --color-border: #2c2e33;
+    --color-success: #3ecf5f;
+    --color-glass-fill: rgba(238, 242, 239, 0.05);
+    --color-glass-border: rgba(212, 167, 44, 0.35);
+
+    --font-display: 'Courier New', Consolas, monospace;
+    --font-body: 'Courier New', Consolas, monospace;
+    --font-mono: 'Courier New', Consolas, monospace;
+
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+    --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+
+    --radius-sm: 6px; --radius-md: 12px; --radius-lg: 20px;
+    --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.55);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(ellipse at center, #141414 0%, #050505 75%);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+  a { color: inherit; }
+  code { font-family: var(--font-mono); }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; flex-direction: column; }
+  .brand .name {
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.04em;
+    color: var(--color-gold-bright);
+  }
+  .brand .sub {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+  .live-badge-on { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-success); }
+  .live-badge-off { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-text-muted); }
+  .action-error { color: #c0392b; font-size: 0.82rem; margin-bottom: var(--space-3); min-height: 1.2em; }
+
+  main { max-width: 1080px; margin: 0 auto; padding: var(--space-6); }
+  .hidden { display: none !important; }
+
+  .panel {
+    background: rgba(14, 15, 18, 0.85);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-panel);
+    padding: var(--space-5);
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-weight: 700; font-size: 0.95rem; cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+    font-family: var(--font-body);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-primary {
+    background: transparent;
+    color: var(--color-gold-bright);
+    border: 1px solid var(--color-gold);
+  }
+  .btn-primary:not(:disabled):hover { background: rgba(212, 167, 44, 0.12); }
+
+  /* ---------------------- PAGE LAYOUT (table column + history sidebar) ---------------------- */
+  .page-layout {
+    display: flex; align-items: flex-start; gap: var(--space-6);
+    max-width: 1400px; margin: 0 auto; padding: var(--space-6);
+  }
+  .page-layout .table-column { flex: 1; min-width: 0; max-width: 1080px; margin: 0 auto; }
+  .history-sidebar {
+    width: 300px; flex-shrink: 0; position: sticky; top: var(--space-5);
+    max-height: calc(100vh - var(--space-7)); display: flex; flex-direction: column;
+  }
+  .history-panel { display: flex; flex-direction: column; min-height: 0; }
+  .history-title { font-size: 1rem; color: var(--color-gold-bright); margin: 0 0 var(--space-3); }
+  .history-list { overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); }
+  .history-entry {
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3); font-size: 0.8rem; background: var(--color-glass-fill);
+  }
+  .history-entry.is-current { border-color: var(--color-gold); }
+  .history-entry .h-hand { font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-muted); }
+  .history-entry .h-winner { color: var(--color-success); margin-top: 2px; }
+  @media (max-width: 1100px) {
+    .page-layout { flex-direction: column; padding: var(--space-4); }
+    .page-layout .table-column { max-width: 100%; }
+    .history-sidebar { width: 100%; position: static; max-height: 320px; }
+  }
+
+  .winner-banner {
+    background: rgba(62,207,95,0.12); border: 1px solid var(--color-success);
+    color: var(--color-success); border-radius: var(--radius-sm); padding: var(--space-3);
+    font-size: 0.9rem; margin-bottom: var(--space-4); min-height: 1.2em;
+  }
+  .controls-row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--space-4); }
+  .hand-line { font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-text-muted); }
+
+  .fairness-panel { border-top: 1px solid var(--color-border); padding-top: var(--space-4); }
+  .fairness-title { font-size: 1rem; color: var(--color-gold-bright); margin: 0 0 var(--space-3); }
+  .fairness-body { display: flex; flex-direction: column; gap: var(--space-3); }
+  .fairness-label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 2px; }
+  .fairness-value { display: block; font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-success); word-break: break-all; }
+  .verified-ok { display: inline-block; margin-top: var(--space-1); font-size: 0.75rem; color: var(--color-success); font-weight: 700; }
+  .muted { color: var(--color-text-muted); font-size: 0.85rem; }
+
+  .footer-note {
+    margin-top: var(--space-7); padding-top: var(--space-4); border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted); font-size: 0.78rem; line-height: 1.6;
+  }
+  .footer-note code { color: var(--color-gold-bright); }
+
+  /* ============================================================
+     TABLE — same night-table geometry as /cashgame-demo, no chips/dealer
+     ============================================================ */
+  .room-container { display:flex; justify-content:center; align-items:center; padding: var(--space-4) 0 var(--space-7); }
+  .canvas { position:relative; width:100%; max-width:1080px; aspect-ratio: 16/9; height:auto; min-height:480px; max-height:720px; }
+
+  .rail {
+    position:absolute; inset: 12% 8%;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #2c2c2c 0%, #1a1a1a 55%, #0a0a0a 100%);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), inset 0 0 0 2px #050505;
+  }
+  .felt {
+    position:absolute; inset: 15.6% 10.6%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 30%, #256bb8 0%, #123d7a 55%, #0a2856 100%);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.55), inset 0 0 4px rgba(255,255,255,0.08);
+  }
+  .felt-inner-ring {
+    position:absolute; inset: 24% 17%;
+    border-radius: 50%;
+    border: 2px dashed rgba(212, 167, 44, 0.55);
+    pointer-events: none;
+  }
+  .brand-watermark {
+    position:absolute; left:50%; top:56%; transform:translate(-50%,-50%);
+    text-align:center; color: rgba(255,255,255,0.06); font-weight:700;
+    letter-spacing:.28em; white-space:nowrap; pointer-events:none;
+    font-size: clamp(1.1rem, 3vw, 2.4rem);
+  }
+  .brand-watermark span { display:block; margin-top:6px; font-size:.4em; letter-spacing:.32em; }
+
+  .hud-left {
+    position:absolute; top: 1%; left: 0.5%; z-index: 30; line-height: 1.5;
+  }
+  .hud-left .hud-title { color: var(--color-gold-bright); font-weight:700; font-size: clamp(11px, 1.5vw, 18px); letter-spacing: 1px; }
+  .hud-left .hud-hand { color: var(--color-text-muted); font-size: clamp(9px, 0.95vw, 12px); margin-top: 2px; }
+
+  .hud-right {
+    position:absolute; top: 1%; right: 0.5%; z-index: 30;
+    display:flex; flex-direction:column; align-items:flex-end; gap: 8px;
+  }
+  .status-box {
+    background: rgba(10,11,13,0.85);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: clamp(8px, 0.85vw, 11px);
+    text-align: right;
+    color: #d8dade;
+  }
+  .status-box .dot-row { display:flex; align-items:center; gap:6px; justify-content:flex-end; }
+  .status-box .dot { width:7px; height:7px; border-radius:50%; background: var(--color-text-muted); }
+  .status-box .dot.live { background: var(--color-success); box-shadow: 0 0 6px var(--color-success); }
+
+  .table-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:8; pointer-events:none; }
+  .table-community { display:flex; align-items:center; justify-content:center; gap:8px; min-height:66px; }
+  .table-community .muted { padding:5px 10px; border-radius:999px; background:rgba(8,24,39,.5); color:rgba(255,255,255,.45); font-weight:700; font-size:.55rem; }
+  /* Deliberately no street label ("Flop"/"Turn"/"River") anywhere near this
+     row - the board is always shown as one finished 5-card result. */
+
+  .card {
+    width: clamp(34px, 4vw, 56px) !important; min-width: clamp(34px, 4vw, 56px) !important;
+    height: clamp(48px, 5.5vw, 78px) !important;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:6px; background:linear-gradient(145deg,#fff,#e7e4dc); border:2px solid #fff;
+    box-shadow:0 4px 9px rgba(0,0,0,.42); color:#17202a; font-weight:700; font-size:.9rem; font-family: var(--font-mono);
+  }
+  .card.red { color:#b62929 !important; }
+  .card-slot {
+    width: clamp(34px, 4vw, 56px); height: clamp(48px, 5.5vw, 78px);
+    border-radius: 6px; border: 3px solid #eef1f6;
+    background: repeating-linear-gradient(45deg, #2c5aa8, #2c5aa8 3px, #26509c 3px, #26509c 6px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  }
+  .mini-card {
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 26px; height: 36px; border-radius:4px; background:linear-gradient(145deg,#fff,#e7e4dc);
+    border:1px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,.4); color:#17202a;
+    font-weight:700; font-size:.62rem; font-family: var(--font-mono);
+  }
+  .mini-card.back {
+    background: repeating-linear-gradient(45deg, #2c5aa8, #2c5aa8 3px, #26509c 3px, #26509c 6px);
+    border: 1px solid #eef1f6;
+  }
+  .player-cards-mini { display:flex; gap:3px; justify-content:center; margin-top:4px; }
+
+  .seat-node { position:absolute; transform:translate(-50%,-50%); z-index:25; text-align:center; width: 132px; }
+  .player-card {
+    min-width:126px !important; padding:6px 12px !important;
+    border:1px solid var(--color-gold) !important; border-radius:22px !important;
+    background: rgba(18,19,23,.96) !important; box-shadow:0 8px 18px rgba(0,0,0,.45) !important;
+  }
+  .player-card.is-winner { border-color: var(--color-success) !important; box-shadow: 0 0 0 2px rgba(62,207,95,0.35) !important; }
+  .player-name { display:block; font-size:.76rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; }
+  .player-hand-name { display:block; margin-top:2px; color:var(--color-gold-bright); font-size:.66rem; font-family: var(--font-mono); min-height: 1em; }
+  .winner-tag { display:block; color: var(--color-success); font-size:.6rem; margin-top:2px; font-weight:700; }
+
+  @media (max-width: 900px) {
+    .canvas { min-height: 390px; }
+    .seat-node { width: 108px; }
+    .player-card { min-width: 96px !important; padding: 5px 8px !important; }
+    .player-name { font-size: .62rem; }
+    .card { font-size: .7rem; }
+  }
+  @media (max-width: 620px) {
+    .canvas { min-height: 300px; aspect-ratio: 4/3; }
+    .seat-node { width: 82px; }
+    .player-card { min-width: 72px !important; padding: 4px 5px !important; }
+    .player-name { font-size: .52rem; }
+    .brand-watermark { font-size: .9rem; }
+    .hud-left .hud-title { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="name">OPENDECK</span>
+      <span class="sub">opendeck.ca/RNG-shuffle-tester — provably-fair shuffle proof, no account required</span>
+    </div>
+    <span id="connBadge" class="live-badge-off">○ Connecting…</span>
+  </div>
+
+  <div class="page-layout">
+  <main class="table-column">
+
+    <div class="room-container">
+      <div class="canvas">
+        <div class="rail"></div>
+        <div class="felt"></div>
+        <div class="felt-inner-ring"></div>
+        <div class="brand-watermark">OPENDECK<span>RNG SHUFFLE TESTER</span></div>
+
+        <div class="hud-left">
+          <div class="hud-title">RANDOM SHUFFLE TEST</div>
+          <div class="hud-hand" id="handLine">Hand #0 · click Deal to start</div>
+        </div>
+        <div class="hud-right">
+          <div class="status-box">
+            <div class="dot-row"><span class="dot" id="statusDot"></span> <span id="statusText">Connecting…</span></div>
+          </div>
+        </div>
+
+        <div class="table-center">
+          <div class="table-community" id="communityRow"><span class="muted">BOARD</span></div>
+        </div>
+        <div id="seatsLayer"></div>
+      </div>
+    </div>
+
+    <div class="below-table">
+      <div class="panel">
+        <div class="action-error" id="actionError"></div>
+        <div class="winner-banner" id="winnerBanner"></div>
+
+        <div class="controls-row">
+          <button class="btn btn-primary" id="dealBtn" onclick="dealHand()">Deal</button>
+          <span class="hand-line" id="statusLine"></span>
+        </div>
+      </div>
+
+      <div class="panel fairness-panel">
+        <h2 class="fairness-title">Fairness Proof</h2>
+        <div id="fairnessBody"></div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      This table isn't a poker game - there's nobody to seat, nothing to bet, and nothing hidden. Six
+      fixed seats give each shuffle's randomness somewhere recognizable to land: click <b>Deal</b> and
+      the server commits a fresh seed, shuffles a full 52-card deck with the exact same
+      HMAC-SHA256-seeded Fisher-Yates engine as <a href="/cashgame-demo" target="_blank" rel="noopener">Cash Game Demo</a>
+      and <a href="/heads-up" target="_blank" rel="noopener">Heads Up</a>, deals two hole cards to each seat
+      plus a full five-card board, and reveals the seed immediately alongside the result - there's no
+      reason to delay the reveal here the way a betting table would, since nobody is acting on hidden
+      information. Every seat's best five-card hand is scored and the winner(s) highlighted, then the
+      whole thing - hand number, cards, winner, and the seed/commit-hash pair anyone can independently
+      recompute and verify - is written to the same permanent <code>demo_hand_history</code> ledger
+      shared with the other two demo tables (distinguished by <code>room_key</code>), so hand numbers are
+      real, durable identifiers you can use to point someone back at a specific past hand. This table is
+      synced live across every open tab over the same Server-Sent Events mechanism as the other demo
+      tables (<code>/RNG-shuffle-tester/*</code>, see <code>routers/rngShuffleTesterRouter.js</code>) - open
+      a second tab and you'll see the same hand land in both at once.
+    </div>
+
+  </main>
+
+  <aside class="history-sidebar" id="historySidebar">
+    <div class="panel history-panel">
+      <h2 class="history-title">Hand History</h2>
+      <p class="muted" id="historyEmpty">No hands dealt yet.</p>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </aside>
+  </div>
+
+<script>
+/* ============================================================
+   RANDOM SHUFFLE TEST TABLE (opendeck.ca/RNG-shuffle-tester)
+
+   Not a poker game - see services/demo/rngShuffleTesterRoom.js for the
+   full rationale. In short: six fixed, unclaimable seats exist only to
+   give each shuffle's randomness somewhere recognizable to land. Nobody
+   joins, nobody bets, nothing is hidden - anyone can click Deal, the
+   whole hand (hole cards + full board) plays out and is revealed at
+   once, and every hand is written to a permanent, numbered ledger
+   (Hand History, right) that anyone can use to point back at a specific
+   past result and independently verify with the seed/commit-hash pair
+   shown in the Fairness Proof panel.
+   ============================================================ */
+const DEMO_API_BASE = (() => {
+  const override = new URLSearchParams(location.search).get('api');
+  if (override) return override.replace(/\/$/, '');
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    return 'http://localhost:8000/RNG-shuffle-tester';
+  }
+  return `${location.origin}/webapp/RNG-shuffle-tester`;
+})();
+
+/* Six seats, evenly spaced around the oval (60° apart), seat 0 at
+   bottom-center - same ellipse math as /cashgame-demo's 7-seat layout,
+   just with one fewer seat and an even angle. */
+const SEAT_COORDINATES = {
+  0: { top: '88%',   left: '50%'   },
+  1: { top: '69%',   left: '13.6%' },
+  2: { top: '31%',   left: '13.6%' },
+  3: { top: '12%',   left: '50%'   },
+  4: { top: '31%',   left: '86.4%' },
+  5: { top: '69%',   left: '86.4%' },
+};
+const SEAT_COUNT = 6;
+const SUIT_SYMBOL = { s: '♠', h: '♥', d: '♦', c: '♣' };
+
+function getClientId() {
+  let id = sessionStorage.getItem('rng_shuffle_client_id');
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    sessionStorage.setItem('rng_shuffle_client_id', id);
+  }
+  return id;
+}
+const CLIENT_ID = getClientId();
+
+const state = {
+  snapshot: null,
+  connected: false,
+  dealing: false,
+};
+
+function $(id) { return document.getElementById(id); }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+function cardHtml(card) {
+  if (!card) return `<span class="card-slot"></span>`;
+  const symbol = SUIT_SYMBOL[card.suit];
+  const red = card.suit === 'h' || card.suit === 'd';
+  return `<span class="card ${red ? 'red' : ''}">${escapeHtml(card.rank)}${symbol}</span>`;
+}
+function miniCardHtml(card) {
+  if (!card) return `<span class="mini-card back"></span>`;
+  const symbol = SUIT_SYMBOL[card.suit];
+  const red = card.suit === 'h' || card.suit === 'd';
+  return `<span class="mini-card" style="color:${red ? '#e0655f' : 'inherit'}">${escapeHtml(card.rank)}${symbol}</span>`;
+}
+function showActionError(message) {
+  $('actionError').textContent = message || '';
+  if (message) setTimeout(() => { if ($('actionError').textContent === message) $('actionError').textContent = ''; }, 4000);
+}
+
+/* ============================================================
+   Stream + actions
+   ============================================================ */
+let eventSource = null;
+
+function connectStream() {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource(`${DEMO_API_BASE}/stream?clientId=${encodeURIComponent(CLIENT_ID)}`);
+  eventSource.addEventListener('state', (ev) => {
+    state.connected = true;
+    state.snapshot = JSON.parse(ev.data);
+    render();
+  });
+  eventSource.onopen = () => { state.connected = true; renderConnBadge(); };
+  eventSource.onerror = () => { state.connected = false; renderConnBadge(); };
+}
+
+async function dealHand() {
+  try {
+    const res = await fetch(`${DEMO_API_BASE}/deal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: CLIENT_ID }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Request failed.');
+  } catch (e) {
+    showActionError(e.message || 'Could not reach the shuffle-test backend.');
+  }
+}
+
+/** GET /history - so the ledger is a fixture of the page from first
+ * paint, not something that only appears once the SSE stream connects. */
+async function refreshHandHistoryFromServer() {
+  try {
+    const res = await fetch(`${DEMO_API_BASE}/history`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data.history) && !state.snapshot) {
+      renderHandHistory(data.history, null);
+    }
+  } catch (e) {
+    // Non-fatal - the panel just stays on whatever it last had.
+  }
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+function render() {
+  renderConnBadge();
+  const snap = state.snapshot;
+  if (!snap) return;
+  renderHandLine(snap);
+  renderSeats(snap);
+  renderCommunity(snap);
+  renderFairness(snap);
+  renderWinnerBanner(snap);
+  renderControls(snap);
+  renderHandHistory(snap.handHistory, snap.lastHand ? snap.lastHand.handNumber : null);
+}
+
+function renderConnBadge() {
+  const badge = $('connBadge');
+  badge.className = state.connected ? 'live-badge-on' : 'live-badge-off';
+  badge.textContent = state.connected ? '● Live' : '○ Reconnecting…';
+  const dot = $('statusDot');
+  const text = $('statusText');
+  dot.classList.toggle('live', state.connected);
+  text.textContent = state.connected ? 'Connected' : 'Connecting…';
+}
+
+function renderHandLine(snap) {
+  $('handLine').textContent = snap.handNumber === 0
+    ? 'Hand #0 · click Deal to start'
+    : `Hand #${snap.handNumber}`;
+}
+
+function renderSeats(snap) {
+  const layer = $('seatsLayer');
+  const hand = snap.lastHand;
+  let html = '';
+  for (let i = 0; i < SEAT_COUNT; i++) {
+    const coords = SEAT_COORDINATES[i];
+    const style = `top:${coords.top}; left:${coords.left};`;
+    const label = (snap.seatLabels && snap.seatLabels[i]) || `Player ${i + 1}`;
+    const seatResult = hand ? hand.seats.find((s) => s.seatIndex === i) : null;
+    const isWinner = hand && hand.winningSeatIndices && hand.winningSeatIndices.includes(i);
+    const holeHtml = seatResult
+      ? `<div class="player-cards-mini">${seatResult.holeCards.map((c) => miniCardHtml(c)).join('')}</div>`
+      : `<div class="player-cards-mini">${miniCardHtml(null)}${miniCardHtml(null)}</div>`;
+    html += `<div class="seat-node" style="${style}">
+      <div class="panel player-card${isWinner ? ' is-winner' : ''}">
+        <span class="player-name">${escapeHtml(label)}</span>
+        <span class="player-hand-name">${seatResult ? escapeHtml(seatResult.handName) : ''}</span>
+        ${isWinner ? `<span class="winner-tag">Winner</span>` : ''}
+        ${holeHtml}
+      </div>
+    </div>`;
+  }
+  layer.innerHTML = html;
+}
+
+function renderCommunity(snap) {
+  const row = $('communityRow');
+  const hand = snap.lastHand;
+  if (!hand) {
+    row.innerHTML = `<span class="muted">BOARD</span>`;
+    return;
+  }
+  // All five community cards shown at once - no flop/turn/river staging.
+  row.innerHTML = hand.communityCards.map((c) => cardHtml(c)).join('');
+}
+
+function renderFairness(snap) {
+  const body = $('fairnessBody');
+  const hand = snap.lastHand;
+  if (!hand) { body.innerHTML = `<p class="muted">Deal a hand to see the deck commit hash.</p>`; return; }
+  body.innerHTML = `
+    <div class="fairness-body">
+      <div>
+        <span class="fairness-label">Deck commit (Hand #${hand.handNumber})</span>
+        <code class="fairness-value">${hand.commitHash}</code>
+      </div>
+      <div>
+        <span class="fairness-label">Reveal seed</span>
+        <code class="fairness-value">${hand.revealSeed}</code>
+        <span class="verified-ok">${hand.verified ? 'Verified ✓ (sha256(seed) === commit hash)' : 'Unverified'}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderWinnerBanner(snap) {
+  $('winnerBanner').textContent = snap.lastHand ? snap.lastHand.winnerText : '';
+}
+
+function renderControls(snap) {
+  const dealBtn = $('dealBtn');
+  dealBtn.disabled = !!snap.dealing;
+  dealBtn.textContent = snap.dealing ? 'Dealing…' : 'Deal';
+  $('statusLine').textContent = snap.dealing ? 'Shuffling and dealing…' : '';
+}
+
+/* ============================================================
+   Hand history — permanent, continuously-updating ledger backed by
+   models/demo_hand_history.js (room_key: 'rng-shuffle-tester'), same
+   pattern as /cashgame-demo and /heads-up. Hand numbers here are the
+   durable identifiers for revisiting a specific past hand.
+   ============================================================ */
+function renderHandHistory(history, currentHandNumber) {
+  const list = $('historyList');
+  const empty = $('historyEmpty');
+  if (!Array.isArray(history) || !history.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  list.innerHTML = history.map((h) => `
+    <div class="history-entry${h.handNumber === currentHandNumber ? ' is-current' : ''}">
+      <div class="h-hand">Hand #${h.handNumber}</div>
+      <div class="h-winner">${escapeHtml(h.winnerText)}</div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+connectStream();
+refreshHandHistoryFromServer();
+render();
+</script>
+</body>
+</html>

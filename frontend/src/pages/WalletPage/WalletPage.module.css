@@ -1,0 +1,194 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 720px;
+}
+
+.notice {
+  max-width: 420px;
+}
+
+.balanceCard {
+  background: linear-gradient(160deg, var(--color-felt) 0%, var(--color-felt-dark) 100%);
+  border-color: rgba(238, 242, 239, 0.14);
+}
+
+.balanceLabel {
+  color: rgba(238, 242, 239, 0.7);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.balanceValue {
+  font-size: 3rem;
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  color: var(--color-brass-bright);
+  margin-bottom: var(--space-4);
+}
+
+.depositForm {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.input,
+.select {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+
+.input {
+  flex: 1;
+  min-width: 140px;
+}
+
+.select {
+  min-width: 180px;
+}
+
+.messageOk {
+  color: var(--color-success);
+  margin-top: var(--space-3);
+  font-size: 0.9rem;
+}
+
+.messageError {
+  color: var(--color-danger);
+  margin-top: var(--space-3);
+  font-size: 0.9rem;
+}
+
+.muted {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.historyHeader .sectionTitle {
+  margin-bottom: 0;
+}
+
+.filterGroup {
+  display: flex;
+  gap: var(--space-1);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+.filterBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filterBtnActive {
+  background: var(--color-brass);
+  color: #1a1305;
+}
+
+.txList {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.txRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  font-size: 0.9rem;
+}
+
+.txType {
+  text-transform: capitalize;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.txAmount {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+.txStatus {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  justify-self: start;
+}
+
+.txStatus[data-status="succeeded"] {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.txStatus[data-status="pending"] {
+  color: var(--color-brass-bright);
+  border-color: var(--color-brass);
+}
+
+.txStatus[data-status="failed"],
+.txStatus[data-status="rejected"] {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.txTime {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+@media (max-width: 560px) {
+  .txRow {
+    grid-template-columns: 1fr 1fr;
+    row-gap: var(--space-1);
+  }
+
+  .txTime {
+    text-align: left;
+  }
+}

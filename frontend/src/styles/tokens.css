@@ -1,0 +1,48 @@
+/*
+  Design language: "the table at night."
+  The Flutter source already hinted at this — black backgrounds on the
+  deposit screen, a felt-painted table, a frosted-glass RNG readout in
+  green monospace. This token set commits to that world instead of a
+  generic app palette: felt green + brushed brass under low light, with
+  the fairness/RNG readout's glass-and-monospace language reused as the
+  signature motif (verified-data panels) across wallet and admin screens.
+*/
+
+:root {
+  /* Color */
+  --color-bg: #0a0d0c;
+  --color-surface: #121916;
+  --color-surface-raised: #1a2320;
+  --color-felt: #0f4c3a;
+  --color-felt-dark: #0a352a;
+  --color-brass: #c9a24b;
+  --color-brass-bright: #e3c374;
+  --color-text: #eef2ef;
+  --color-text-muted: #93a39c;
+  --color-border: rgba(238, 242, 239, 0.1);
+  --color-danger: #c0392b;
+  --color-success: #3fbf7f;
+  --color-glass-fill: rgba(238, 242, 239, 0.06);
+  --color-glass-border: rgba(238, 242, 239, 0.16);
+
+  /* Type */
+  --font-display: "Bebas Neue", "Arial Narrow", sans-serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+
+  /* Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.45);
+}

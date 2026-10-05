@@ -1,0 +1,43 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.address {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--color-text);
+  margin-top: var(--space-1);
+}
+
+.balance {
+  font-size: 1.6rem;
+  color: var(--color-brass-bright);
+  margin-top: var(--space-1);
+}
+
+.network {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.muted {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-top: var(--space-1);
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  margin-top: var(--space-1);
+}

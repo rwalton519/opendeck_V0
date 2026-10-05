@@ -1,0 +1,16 @@
+.stub {
+  max-width: 520px;
+}
+
+.title {
+  font-size: 2rem;
+  margin-bottom: var(--space-3);
+  color: var(--color-brass-bright);
+}
+
+.note {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}

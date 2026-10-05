@@ -1,0 +1,117 @@
+.page {
+  width: min(100%, 1320px);
+  margin: 0 auto;
+  padding: 28px 28px 56px;
+  color: var(--color-text);
+}
+
+
+
+
+
+.status,.error { text-align:center; margin:8px 0; font-size:.8rem; }
+.error { color:var(--color-danger); }
+
+.tableShell { position:relative; width:100%; max-width:1080px; aspect-ratio:16/9; height:auto; min-height:480px; max-height:720px; margin:0 auto; }
+.rail { position:absolute; inset:12% 8%; border-radius:50%; background:linear-gradient(180deg,#2c2c2c 0%,#1a1a1a 55%,#0a0a0a 100%); box-shadow:0 20px 60px rgba(0,0,0,.7), inset 0 0 0 2px #050505; }
+.felt { position:absolute; inset:15.6% 10.6%; border-radius:50%; background:radial-gradient(ellipse at 50% 30%,#256bb8 0%,#123d7a 55%,#0a2856 100%); box-shadow:inset 0 0 40px rgba(0,0,0,.55), inset 0 0 4px rgba(255,255,255,.08); }
+.innerRing { position:absolute; inset:24% 17%; border:2px dashed rgba(212,167,44,.55); border-radius:50%; pointer-events:none; }
+.brandWatermark { position:absolute; left:50%; top:56%; transform:translate(-50%,-50%); text-align:center; font:700 clamp(1.1rem,3vw,2.4rem)/1 var(--font-display); letter-spacing:.28em; color:rgba(255,255,255,.06); pointer-events:none; white-space:nowrap; }
+.brandWatermark span { display:block; margin-top:5px; font:700 .5em/1 var(--font-mono); letter-spacing:.18em; }
+.centerStage { position:absolute; left:50%; top:48%; transform:translate(-50%,-50%); z-index:12; text-align:center; min-width:300px; }
+.potLabel { color:rgba(255,255,255,.7); font:700 .62rem var(--font-display); letter-spacing:.1em; }
+.potValue { display:inline-block; margin:3px 0 9px; padding:4px 11px; border:1px solid rgba(255,255,255,.16); border-radius:999px; background:rgba(6,15,24,.72); box-shadow:0 4px 12px rgba(0,0,0,.25); color:var(--color-brass-bright); font:700 .78rem var(--font-mono); }
+.communityRow { display:flex; justify-content:center; align-items:center; gap:6px; min-height:64px; }
+.communityPlaceholder { padding:5px 10px; border-radius:999px; background:rgba(8,24,39,.38); color:rgba(255,255,255,.45); font:700 .55rem var(--font-mono); letter-spacing:.08em; }
+.currentBet { margin-top:5px; color:rgba(255,255,255,.55); font:.6rem var(--font-mono); }
+
+.card { width:46px; height:62px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; background:linear-gradient(145deg,#fff,#e7e4dc); border:2px solid rgba(255,255,255,.9); box-shadow:0 4px 9px rgba(0,0,0,.42); color:#17202a; font:700 .95rem var(--font-mono); }
+.cardRed { color:#b62929; }
+.cardSmall { width:25px; height:34px; border-width:1px; font-size:.56rem; border-radius:4px; }
+.holeRow { display:flex; justify-content:center; gap:3px; margin-top:5px; }
+
+.seat { position:absolute; transform:translate(-50%,-50%); width:132px; z-index:25; text-align:center; }
+.playerPlaque { position:relative; min-width:126px; padding:6px 12px; border:1px solid #d4a72c; border-radius:22px; background:rgba(18,19,23,.96); box-shadow:0 8px 18px rgba(0,0,0,.45); }
+.playerPlaque.turn { border-color:var(--color-success); box-shadow:0 0 0 2px rgba(63,191,127,.24),0 8px 18px rgba(0,0,0,.45); }
+.playerPlaque.folded { opacity:.42; }
+.playerName { display:block; font-weight:800; font-size:.76rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.playerBalance { display:block; margin-top:2px; color:var(--color-brass-bright); font:.72rem var(--font-mono); }
+.dealer { position:absolute; right:-9px; top:-9px; width:23px; height:23px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#f2f2ef; color:#111; border:2px solid #aaa; font:800 .68rem var(--font-mono); box-shadow:0 2px 5px rgba(0,0,0,.45); }
+.takeSeat { min-width:108px; padding:8px 12px !important; font-size:.75rem !important; }
+
+.chipStackWrap { position:relative; display:flex; flex-direction:column; align-items:center; width:48px; margin:0 auto 4px; }
+.chipStack { position:relative; width:32px; height:31px; filter:drop-shadow(0 5px 4px rgba(0,0,0,.55)); }
+.chip { position:absolute; left:0; bottom:calc(var(--i,0) * 5px); width:32px; height:9px; border-radius:50%; border:1px solid rgba(0,0,0,.7); box-shadow:inset 0 1px 1px rgba(255,255,255,.35), inset 0 -2px 2px rgba(0,0,0,.45); overflow:hidden; }
+.chip:nth-child(1){bottom:0}.chip:nth-child(2){bottom:5px}.chip:nth-child(3){bottom:10px}.chip:nth-child(4){bottom:15px}.chip:nth-child(5){bottom:20px}
+.chip::before { content:""; position:absolute; inset:2px 3px; border-radius:50%; border:1px dashed rgba(255,255,255,.55); }
+.chipRed{background:linear-gradient(180deg,#e84b45,#8c1717)} .chipBlue{background:linear-gradient(180deg,#4f92d8,#173f7e)} .chipBlack{background:linear-gradient(180deg,#4d565e,#14191d)} .chipGreen{background:linear-gradient(180deg,#4dbb75,#1b633b)} .chipGold{background:linear-gradient(180deg,#f2ca5d,#9d7021)}
+.betPill { margin-top:2px; padding:2px 6px; border-radius:999px; background:rgba(5,12,18,.8); color:var(--color-brass-bright); border:1px solid rgba(227,195,116,.22); font:.55rem var(--font-mono); white-space:nowrap; }
+.dealerButton { position:absolute; left:56%; top:72%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#f4f3ee; color:#111; font:800 .65rem var(--font-mono); box-shadow:0 2px 6px rgba(0,0,0,.45); z-index:20; }
+
+.flightLayer { position:absolute; inset:0; pointer-events:none; overflow:visible; z-index:40; }
+.flightChip { position:absolute; width:22px; height:7px; margin-left:-11px; margin-top:-4px; border-radius:50%; background:linear-gradient(180deg,#f1d071,#8e641b); border:1px solid #111; box-shadow:0 2px 5px rgba(0,0,0,.55); animation:chipFlight .72s cubic-bezier(.2,.75,.25,1) forwards; }
+.flightChip::before { content:""; position:absolute; inset:1px 3px; border:1px dashed rgba(255,255,255,.65); border-radius:50%; }
+.flightChipCore { position:absolute; inset:0; border-radius:50%; }
+.flightToPlayer { animation-name:chipFlightReverse; }
+@keyframes chipFlight { 0%{opacity:0; transform:translate(0,0) scale(.75) rotate(0deg)} 12%{opacity:1} 45%{transform:translate(calc(var(--dx)*.48),calc(var(--dy)*.48 - 34px)) scale(1) rotate(120deg)} 100%{opacity:0; transform:translate(var(--dx),var(--dy)) scale(.72) rotate(260deg)} }
+@keyframes chipFlightReverse { 0%{opacity:0; transform:translate(0,0) scale(.75)} 12%{opacity:1} 45%{transform:translate(calc(var(--dx)*.48),calc(var(--dy)*.48 - 28px)) scale(1.05)} 100%{opacity:0; transform:translate(var(--dx),var(--dy)) scale(.72)} }
+
+.actionDock { display:flex; justify-content:center; gap:9px; align-items:center; width:max-content; max-width:100%; margin:-2px auto 12px; padding:9px 12px; position:relative; z-index:50; }
+.raiseInput { width:90px; padding:8px; border-radius:6px; border:1px solid var(--color-glass-border); background:var(--color-surface-raised); color:var(--color-text); font: .8rem var(--font-mono); }
+.preHandBar { display:flex; justify-content:center; align-items:center; min-height:42px; color:var(--color-text-muted); font:.72rem var(--font-mono); }
+.utilityGrid { display:grid; grid-template-columns:1.1fr 1fr; gap:14px; margin:14px auto 0; max-width:800px; }
+.utilityPanel { padding:14px !important; }
+.utilityPanel h2 { margin-bottom:10px; color:var(--color-brass-bright); font-size:.85rem; text-transform:uppercase; }
+.infoRow { display:flex; justify-content:space-between; padding:4px 0; font:.72rem var(--font-mono); border-bottom:1px solid rgba(255,255,255,.05); }
+.infoRow span { color:var(--color-text-muted); }
+.hash { display:block; color:var(--color-success); font:.65rem var(--font-mono); word-break:break-all; }
+.verifyButton { margin-top:9px; }
+.muted { color:var(--color-text-muted); font-size:.75rem; }
+.holeCardsPanel { max-width:800px; margin:10px auto 0; padding:12px 14px !important; text-align:center; }
+.holeCardsPanel .label { display:block; margin-bottom:7px; color:var(--color-text-muted); font:700 .62rem var(--font-display); letter-spacing:.1em; text-transform:uppercase; }
+.holeCardsRow { display:flex; justify-content:center; align-items:center; gap:7px; min-height:62px; }
+.backtest { display:block; width:max-content; margin:10px auto 0; color:var(--color-text-muted); font:.65rem var(--font-mono); }
+.backtest:hover { color:var(--color-brass-bright); }
+
+@media (max-width: 900px) {
+  .page { padding:18px 12px 36px; }
+  .tableShell { min-height:390px; }
+  .seat { width:108px; }
+  .playerPlaque { min-width:96px; padding:5px 8px; }
+  .playerName { font-size:.65rem; }
+  .playerBalance { font-size:.62rem; }
+  .card { width:38px; height:51px; font-size:.75rem; }
+  .chipStack { transform:scale(.85); transform-origin:bottom center; }
+  .utilityGrid { grid-template-columns:1fr; }
+}
+@media (max-width: 620px) {
+  .tableShell { min-height:300px; aspect-ratio:4/3; }
+  .seat { width:82px; }
+  .playerPlaque { min-width:72px; padding:4px 5px; }
+  .playerName { font-size:.53rem; }
+  .playerBalance { font-size:.5rem; }
+  .chipStackWrap { transform:scale(.68); margin-bottom:-2px; }
+  .takeSeat { min-width:70px; padding:6px 6px !important; font-size:.56rem !important; }
+  .centerStage { min-width:190px; }
+  .card { width:29px; height:40px; font-size:.55rem; }
+  .communityRow { gap:3px; min-height:44px; }
+  .potValue { font-size:.6rem; }
+  .brandWatermark { font-size:1rem; }
+  .dealerButton { transform:scale(.8); }
+}
+
+/* ADDED (USDC/Polygon integration) */
+.onchainPanelBody { display:flex; flex-direction:column; gap:8px; }
+.onchainAddressRow { font:.72rem var(--font-mono); color:var(--color-brass-bright); word-break:break-all; }
+.onchainRebuyRow { display:flex; gap:8px; align-items:center; }
+
+
+/* Random Shuffle Test table HUD (title top-left, live status top-right) */
+.hudLeft { position:absolute; top:1%; left:.5%; z-index:30; line-height:1.5; }
+.hudTitle { color:var(--color-brass-bright); font-weight:700; font-size:clamp(11px,1.5vw,18px); letter-spacing:1px; }
+.hudHand { margin-top:2px; color:var(--color-text-muted); font:clamp(9px,.95vw,12px) var(--font-mono); }
+.hudBack { display:inline-block; margin-top:4px; color:var(--color-text-muted); font:clamp(9px,.95vw,12px) var(--font-mono); text-decoration:none; }
+.hudBack:hover { color:var(--color-brass-bright); }
+.hudRight { position:absolute; top:1%; right:.5%; z-index:30; }
+.statusBox { display:flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid #2c2e33; border-radius:8px; background:rgba(10,11,13,.85); color:#d8dade; font:clamp(8px,.85vw,11px) var(--font-mono); }
+.liveDot { width:7px; height:7px; border-radius:50%; background:var(--color-success); box-shadow:0 0 6px var(--color-success); }

@@ -1,0 +1,18 @@
+{
+  "name": "sidebet-sim-server",
+  "version": "1.0.0",
+  "description": "Shared, persistent backend for the SideBet simulation at opendeck.ca/sidebet-sim",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

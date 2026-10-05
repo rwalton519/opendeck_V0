@@ -1,0 +1,64 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.primary {
+  background: linear-gradient(180deg, var(--color-brass-bright), var(--color-brass));
+  color: #1a1305;
+  box-shadow: 0 4px 14px rgba(201, 162, 75, 0.25);
+}
+
+.primary:not(:disabled):hover {
+  box-shadow: 0 6px 18px rgba(201, 162, 75, 0.35);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.ghost:not(:disabled):hover {
+  border-color: var(--color-brass);
+  color: var(--color-brass-bright);
+}
+
+.danger {
+  background: transparent;
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.danger:not(:disabled):hover {
+  background: rgba(192, 57, 43, 0.12);
+}
+
+.success {
+  background: transparent;
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.success:not(:disabled):hover {
+  background: rgba(63, 191, 127, 0.12);
+}

@@ -1,0 +1,12 @@
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  font-size: clamp(120px, 28vw, 280px);
+  line-height: 1;
+  user-select: none;
+}

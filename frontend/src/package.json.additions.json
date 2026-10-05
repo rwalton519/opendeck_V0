@@ -1,0 +1,11 @@
+{
+  "_comment": "Not a standalone package.json - these are the dependencies to merge into your existing frontend/package.json (D:\\projects\\web_app_v2\\frontend). Run: npm install @stripe/stripe-js @stripe/react-stripe-js",
+  "dependencies_to_add": {
+    "@stripe/stripe-js": "^4.8.0",
+    "@stripe/react-stripe-js": "^2.8.1"
+  },
+  "env_vars_to_add": {
+    "VITE_STRIPE_PUBLISHABLE_KEY": "pk_test_... (from the Stripe Dashboard - safe to expose client-side)",
+    "VITE_API_BASE_URL": "http://localhost:8000 in dev, your real API origin in prod"
+  }
+}

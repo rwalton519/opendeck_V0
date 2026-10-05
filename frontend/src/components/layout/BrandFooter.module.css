@@ -1,0 +1,25 @@
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6) 0 var(--space-5);
+  margin-top: var(--space-7);
+  border-top: 1px solid var(--color-glass-border);
+}
+
+.markWrap {
+  display: inline-flex;
+  color: var(--color-brass-bright);
+}
+
+.markIcon {
+  display: block;
+}
+
+.wordmark {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+}

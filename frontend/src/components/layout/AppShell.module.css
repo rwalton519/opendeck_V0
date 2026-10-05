@@ -1,0 +1,96 @@
+.shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(10, 13, 12, 0.7);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+  color: var(--color-brass-bright);
+}
+
+.brandMark {
+  color: var(--color-felt);
+  background: var(--color-brass-bright);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.nav {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.link {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.link:hover {
+  color: var(--color-text);
+  background: var(--color-glass-fill);
+}
+
+.linkActive {
+  color: var(--color-brass-bright);
+  background: var(--color-glass-fill);
+  border: 1px solid var(--color-glass-border);
+}
+
+/* .link is also used on the Sign Out <button> in the nav - reset native
+   button chrome so it matches the NavLink-based items next to it. */
+button.link {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.main {
+  flex: 1;
+  padding: var(--space-6);
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .main {
+    padding: var(--space-4);
+  }
+}

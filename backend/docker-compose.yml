@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: transparent_poker
+    ports:
+      - "5432:5432"
+    volumes:
+      - opendeck_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/transparent_poker
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: transparent_poker
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      JWT_ALGORITHM: HS256
+      PORT: 8000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      MODERN_TREASURY_API_KEY: ${MODERN_TREASURY_API_KEY:-}
+      MODERN_TREASURY_ORG_ID: ${MODERN_TREASURY_ORG_ID:-}
+      MONERO_RPC_HOST: ${MONERO_RPC_HOST:-localhost}
+      MONERO_RPC_PORT: ${MONERO_RPC_PORT:-18082}
+      MONERO_RPC_USER: ${MONERO_RPC_USER:-username}
+      MONERO_RPC_PASSWORD: ${MONERO_RPC_PASSWORD:-password}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8000/', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # Optional: seeds a handful of demo rows (tournaments, a cash table) into
+  # an otherwise-empty database. Run on demand, not automatically, so it
+  # never runs against a database that already has real data:
+  #   docker compose --profile seed run --rm seed
+  seed:
+    build: .
+    profiles: ["seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/transparent_poker
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: transparent_poker
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+    command: ["sh", "-c", "npm run migrate:up && npm run seed"]
+
+volumes:
+  opendeck_pgdata:

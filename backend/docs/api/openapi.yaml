@@ -1,0 +1,1088 @@
+openapi: 3.0.3
+info:
+  title: OpenDeck Backend API
+  description: |
+    Real-money poker + prediction market platform backend (OpenDeck / SoverraAI).
+    Covers auth, wallet (deposits/withdrawals/crypto), tournaments, live cash-game
+    play, the provably-fair RNG engine, admin operations, and KYC.
+
+    See also:
+      - `docs/DEPOSIT_CARD_PAYMENT_CONTRACT.md` — the exact 3-step card deposit flow
+      - `MIGRATIONS.md` — schema history, including the tournament model consolidation
+      - `CHANGELOG_FIXES.md` — what's real vs. what's a documented gap
+  version: "2.1.0"
+  contact:
+    name: OpenDeck / SoverraAI
+    url: https://opendeck.ca
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: https://opendeck.ca/api
+    description: Production (behind nginx - confirm actual prefix in your nginx config)
+
+tags:
+  - name: Auth
+  - name: Wallet
+  - name: Tournaments
+  - name: Cash Game
+  - name: Provably-Fair RNG
+  - name: Stripe Connect
+  - name: KYC
+  - name: Admin
+  - name: Health
+
+paths:
+  /:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+
+  # ---------------------------------------------------------------
+  # AUTH
+  # ---------------------------------------------------------------
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, username, password]
+              properties:
+                email: { type: string, format: email }
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: User created (password omitted from response)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPublic" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in and receive a JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user_id: { type: integer }
+                  email: { type: string }
+                  username: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  # ---------------------------------------------------------------
+  # WALLET
+  # ---------------------------------------------------------------
+  /wallet/balance:
+    get:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Wallet]
+      summary: Get a user's available balance
+      parameters:
+        - $ref: "#/components/parameters/UserIdQuery"
+      responses:
+        "200":
+          description: Balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balance: { type: number, format: float }
+
+  /wallet/transactions:
+    get:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Wallet]
+      summary: List a user's recent wallet transactions (most recent 100)
+      parameters:
+        - $ref: "#/components/parameters/UserIdQuery"
+      responses:
+        "200":
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items: { $ref: "#/components/schemas/WalletTransaction" }
+
+  /wallet/payment-methods/capabilities:
+    get:
+      tags: [Wallet]
+      summary: Which payment methods have real deposit/withdrawal support today
+      responses:
+        "200":
+          description: Capability map
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  methods: { type: object, additionalProperties: true }
+
+  /wallet/deposit:
+    post:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Wallet]
+      summary: Start a deposit (step 1 of 3 for card payments)
+      description: |
+        For card/debit/square/eWallet, creates a real Stripe PaymentIntent and returns its
+        `client_secret`. The wallet is **not** credited by this call — see
+        `docs/DEPOSIT_CARD_PAYMENT_CONTRACT.md` for the full 3-step flow
+        (this call → `stripe.confirmCardPayment()` client-side → `/wallet/webhooks/stripe`).
+        bankTransfer/eTransfer and crypto methods (other than the dedicated crypto-address
+        flow below) are honestly rejected — see `utils/paymentMethods.js`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, amount, method]
+              properties:
+                user_id: { type: string }
+                amount: { type: number, format: float, minimum: 0.01 }
+                method: { type: string, enum: [card, debit, square, eWallet, bankTransfer, eTransfer] }
+      responses:
+        "200":
+          description: Deposit initiated (Stripe) or rejected with a clear reason
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  transactionId: { type: string }
+                  data:
+                    type: object
+                    properties:
+                      method: { type: string }
+                      provider: { type: string, example: stripe }
+                      client_secret: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /wallet/deposit-status:
+    get:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Wallet]
+      summary: Get the status of one deposit transaction
+      parameters:
+        - in: query
+          name: transactionId
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: user_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Current provider/payment-record status
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /wallet/withdraw:
+    post:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Wallet]
+      summary: Request a withdrawal (submitted for admin approval, not instant)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, amount, method]
+              properties:
+                user_id: { type: string }
+                amount: { type: number, format: float, minimum: 0.01 }
+                method: { type: string, example: cryptoMonero }
+                address:
+                  type: string
+                  description: Required when method is cryptoMonero.
+      responses:
+        "200":
+          description: Withdrawal request submitted, or a handled failure (insufficient funds)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  transactionId: { type: string }
+                  data:
+                    type: object
+                    properties:
+                      status: { type: string, example: pending }
+                      method: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /wallet/crypto-deposit-address:
+    get:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Wallet]
+      summary: Get (or generate) a deposit address for a crypto asset
+      description: Only ETH and XMR have real address generation; other assets return 501.
+      parameters:
+        - $ref: "#/components/parameters/UserIdQuery"
+        - name: asset
+          in: query
+          required: true
+          schema: { type: string, enum: [ETH, XMR, BTC] }
+      responses:
+        "200":
+          description: Address
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  address: { type: string }
+        "501": { description: "Not implemented for this asset" }
+
+  /wallet/crypto-deposit-status:
+    get:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Wallet]
+      summary: Check status of a pending crypto deposit
+      parameters:
+        - $ref: "#/components/parameters/UserIdQuery"
+        - name: asset
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Status }
+
+  /wallet/crypto-deposit-confirm:
+    post:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Wallet]
+      summary: Confirm a crypto deposit by transaction id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, asset, txid]
+              properties:
+                user_id: { type: string }
+                asset: { type: string }
+                txid: { type: string }
+      responses:
+        "200": { description: Confirmed and credited }
+
+  /wallet/webhooks/stripe:
+    post:
+      tags: [Wallet]
+      summary: Stripe webhook receiver (Stripe calls this, not the frontend)
+      description: |
+        Mounted with a raw body parser (not JSON) so the Stripe signature can be verified.
+        This is step 3 of the card deposit flow — it's what actually credits the wallet.
+      responses:
+        "200": { description: Acknowledged }
+
+  # ---------------------------------------------------------------
+  # STRIPE CONNECT (payouts)
+  # ---------------------------------------------------------------
+  /wallet/stripe-connect/onboard:
+    post:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Stripe Connect]
+      summary: Get a Stripe-hosted onboarding link for payouts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, email, refresh_url, return_url]
+              properties:
+                user_id: { type: string }
+                email: { type: string, format: email }
+                refresh_url: { type: string, format: uri }
+                return_url: { type: string, format: uri }
+      responses:
+        "200":
+          description: Onboarding URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string, format: uri }
+
+  /wallet/stripe-connect/status:
+    get:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Stripe Connect]
+      summary: Check a user's Connect onboarding/payout status
+      parameters:
+        - $ref: "#/components/parameters/UserIdQuery"
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  onboarded: { type: boolean }
+                  payouts_enabled: { type: boolean }
+                  charges_enabled: { type: boolean }
+                  details_submitted: { type: boolean }
+
+  # ---------------------------------------------------------------
+  # TOURNAMENTS
+  # ---------------------------------------------------------------
+  /tournaments:
+    get:
+      tags: [Tournaments]
+      summary: List all tournaments
+      responses:
+        "200":
+          description: Tournament list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tournament" }
+    post:
+      security: [{ UserBearerAuth: [] }]
+      tags: [Tournaments]
+      summary: Create a tournament (admin/testing convenience)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, size, stake]
+              properties:
+                name: { type: string }
+                size: { type: string, enum: [MICRO, STANDARD, LARGE] }
+                stake: { type: string, enum: [NANO, MICRO, MID, MACRO] }
+                is_freeroll: { type: boolean }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tournament" }
+
+  /tournaments/user/{userId}/tickets:
+    get:
+      tags: [Tournaments]
+      summary: List a user's freeroll tickets
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Ticket list }
+
+  /tournaments/{id}:
+    get:
+      tags: [Tournaments]
+      summary: Get a single tournament
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Tournament
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tournament" }
+        "404": { description: Not found }
+
+  /tournaments/{id}/table_state:
+    get:
+      tags: [Tournaments]
+      summary: Get the table/seat breakdown for a running tournament
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200": { description: Table state }
+
+  /tournaments/{id}/register:
+    post:
+      tags: [Tournaments]
+      summary: Register for a tournament (deducts buy-in via wallet freeze)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: integer }
+      responses:
+        "200": { description: Registered }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /tournaments/{id}/rebuy:
+    post:
+      tags: [Tournaments]
+      summary: Rebuy (only while rebuys are open)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: integer }
+      responses:
+        "200": { description: Rebuy applied }
+
+  /tournaments/{id}/addon:
+    post:
+      tags: [Tournaments]
+      summary: Add-on
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: integer }
+      responses:
+        "200": { description: Add-on applied }
+
+  # ---------------------------------------------------------------
+  # CASH GAME (live play)
+  # ---------------------------------------------------------------
+  /cashgame/create:
+    post:
+      tags: [Cash Game]
+      summary: Create a cash game table
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, small_blind, big_blind]
+              properties:
+                name: { type: string }
+                small_blind: { type: integer }
+                big_blind: { type: integer }
+                max_players: { type: integer, default: 9 }
+      responses:
+        "200": { description: Table created }
+
+  /cashgame/{tableId}/state:
+    get:
+      tags: [Cash Game]
+      summary: Get a table's current state (seats + hand in progress, if any)
+      parameters:
+        - $ref: "#/components/parameters/TableId"
+        - name: user_id
+          in: query
+          schema: { type: string }
+          description: Whose own hole cards to reveal (never anyone else's, pre-showdown).
+      responses:
+        "200": { description: Table state }
+
+  /cashgame/{tableId}/stream:
+    get:
+      tags: [Cash Game]
+      summary: SSE stream of table state changes
+      parameters:
+        - $ref: "#/components/parameters/TableId"
+      responses:
+        "200":
+          description: text/event-stream of table_state events
+          content:
+            text/event-stream: {}
+
+  /cashgame/{tableId}/seats/{seatIndex}/take:
+    post:
+      tags: [Cash Game]
+      summary: Take a seat with a buy-in
+      parameters:
+        - $ref: "#/components/parameters/TableId"
+        - name: seatIndex
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, buyin_amount]
+              properties:
+                user_id: { type: string }
+                buyin_amount: { type: number }
+      responses:
+        "200": { description: Seated }
+
+  /cashgame/{tableId}/seats/{seatIndex}/leave:
+    post:
+      tags: [Cash Game]
+      summary: Leave a seat (cashes out remaining chips)
+      parameters:
+        - $ref: "#/components/parameters/TableId"
+        - name: seatIndex
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Left table }
+
+  /cashgame/{tableId}/start-hand:
+    post:
+      tags: [Cash Game]
+      summary: Start a new hand (real commit/shuffle/cut deal via deckService)
+      parameters:
+        - $ref: "#/components/parameters/TableId"
+      responses:
+        "200": { description: Hand started, public state returned }
+        "400": { description: "Already a hand in progress, or fewer than 2 players with chips" }
+
+  /cashgame/{tableId}/action:
+    post:
+      tags: [Cash Game]
+      summary: Take a betting action (fold/check/call/raise)
+      parameters:
+        - $ref: "#/components/parameters/TableId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, action]
+              properties:
+                user_id: { type: string }
+                action: { type: string, enum: [fold, check, call, raise] }
+                amount:
+                  type: number
+                  description: Required for `raise` — the target total street commitment.
+      responses:
+        "200": { description: Updated public state }
+        "400": { description: "Illegal action (not your turn, invalid raise size, etc.)" }
+
+  /cashgame/{tableId}/last-hand:
+    get:
+      tags: [Cash Game]
+      summary: Get the full reveal (hole cards, seed, commit, cut index) of the last completed hand
+      description: This is the payload a client-side fairness verifier / backtest tool re-derives against.
+      parameters:
+        - $ref: "#/components/parameters/TableId"
+      responses:
+        "200": { description: Last completed hand, or null if none yet }
+
+  /cashgame/settle_hand:
+    post:
+      tags: [Cash Game]
+      summary: (Internal) settle a hand given pots/results
+      description: Normally invoked internally by liveHandEngine.js's finishHand, not called directly by clients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                table_id: { type: integer }
+                pots: { type: array, items: { type: object } }
+                results: { type: object, additionalProperties: { type: number } }
+      responses:
+        "200": { description: Settled }
+
+  /cashgame/apply_rake:
+    post:
+      tags: [Cash Game]
+      summary: (Internal) apply time-based rake to a table if due
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                table_id: { type: integer }
+      responses:
+        "200": { description: Rake applied (or 0 if not yet due) }
+
+  # ---------------------------------------------------------------
+  # PROVABLY-FAIR RNG (standalone commit/reveal games, e.g. the /backtest tool)
+  # ---------------------------------------------------------------
+  /game/start:
+    post:
+      tags: [Provably-Fair RNG]
+      summary: Start a new provably-fair game — generates a seed and publishes its commitment
+      responses:
+        "200":
+          description: Commitment published (seed stays server-side)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  game_id: { type: integer }
+                  commit: { type: string, description: "sha256(seed), hex-encoded" }
+
+  /game/{game_id}/cut:
+    post:
+      tags: [Provably-Fair RNG]
+      summary: Apply the player's cut index
+      description: Returns only a commitment to the post-cut deck, never real card values — see deckService.js's header comment for why.
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cut_index: { type: integer, minimum: 0, maximum: 51 }
+      responses:
+        "200": { description: Post-cut commitment }
+
+  /game/{game_id}/reveal:
+    post:
+      tags: [Provably-Fair RNG]
+      summary: Reveal the seed and full deck order (only once the game/hand is finished)
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: Seed and deck order revealed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FairnessReveal" }
+
+  /game/{game_id}/verify:
+    get:
+      tags: [Provably-Fair RNG]
+      summary: Independently re-derive and verify a revealed game
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: Verification result — recomputes from scratch, does not trust a stored flag
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified: { type: boolean }
+                  commit_matches: { type: boolean }
+                  deck_matches: { type: boolean }
+
+  /rng/commit:
+    get:
+      tags: [Provably-Fair RNG]
+      summary: Get the current published commitment (no active game context)
+      responses:
+        "200": { description: Commitment }
+
+  /rng/reveal/{game_id}:
+    get:
+      tags: [Provably-Fair RNG]
+      summary: Reveal by game id
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200": { description: Reveal }
+
+  # ---------------------------------------------------------------
+  # KYC
+  # ---------------------------------------------------------------
+  /kyc/start:
+    post:
+      tags: [KYC]
+      summary: Start a KYC verification session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: string }
+                provider: { type: string, enum: [sumsub, onfido] }
+      responses:
+        "200": { description: Session started }
+
+  /kyc/status:
+    get:
+      tags: [KYC]
+      summary: Get KYC status for a user
+      parameters:
+        - $ref: "#/components/parameters/UserIdQuery"
+      responses:
+        "200": { description: KYC status }
+
+  # ---------------------------------------------------------------
+  # ADMIN
+  # ---------------------------------------------------------------
+  /admin/login:
+    post:
+      tags: [Admin]
+      summary: Admin login (JSON body, not query params)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200": { description: Authenticated, returns admin JWT }
+        "401": { description: Invalid credentials }
+
+  /admin/change-password:
+    post:
+      security: [{ AdminBearerAuth: [] }]
+      tags: [Admin]
+      summary: Change the authenticated admin password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, format: password }
+                new_password: { type: string, format: password, minLength: 12 }
+      responses:
+        "200":
+          description: Password changed
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /admin/adjust_balance:
+    post:
+      tags: [Admin]
+      summary: Manually adjust a user's wallet balance
+      security: [{ AdminBearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id: { type: string }
+                amount: { type: number }
+                reason: { type: string }
+      responses:
+        "200": { description: Adjusted }
+
+  /admin/ledger/{user_id}:
+    get:
+      tags: [Admin]
+      summary: Get a user's full ledger history
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Ledger entries }
+
+  /admin/freeze_user:
+    post:
+      tags: [Admin]
+      summary: Freeze a user's account
+      security: [{ AdminBearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id: { type: string }
+      responses:
+        "200": { description: Frozen }
+
+  /admin/unfreeze_user:
+    post:
+      tags: [Admin]
+      summary: Unfreeze a user's account
+      security: [{ AdminBearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id: { type: string }
+      responses:
+        "200": { description: Unfrozen }
+
+  /admin/force_seat:
+    post:
+      tags: [Admin]
+      summary: Force-seat a player at a cash table (support tooling)
+      security: [{ AdminBearerAuth: [] }]
+      responses:
+        "200": { description: Seated }
+
+  /admin/force_remove:
+    post:
+      tags: [Admin]
+      summary: Force-remove a player from a cash table (support tooling)
+      security: [{ AdminBearerAuth: [] }]
+      responses:
+        "200": { description: Removed }
+
+  /admin/tournament/advance_level:
+    post:
+      tags: [Admin]
+      summary: Manually advance a tournament's blind level
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - name: tournament_id
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Level advanced }
+
+  /admin/tournament/finalize:
+    post:
+      tags: [Admin]
+      summary: Finalize a tournament and pay out winners
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - name: tournament_id
+          in: query
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: { type: number }
+              description: "{ user_id: payout_amount_usd }"
+      responses:
+        "200": { description: Finalized }
+
+  /admin/withdrawals/pending:
+    get:
+      tags: [Admin]
+      summary: List pending withdrawal requests
+      security: [{ AdminBearerAuth: [] }]
+      responses:
+        "200": { description: Pending withdrawals }
+
+  /admin/withdrawals/approve:
+    post:
+      tags: [Admin]
+      summary: Approve a pending withdrawal (triggers the real payout)
+      security: [{ AdminBearerAuth: [] }]
+      responses:
+        "200": { description: Approved }
+
+  /admin/withdrawals/reject:
+    post:
+      tags: [Admin]
+      summary: Reject a pending withdrawal (unfreezes funds)
+      security: [{ AdminBearerAuth: [] }]
+      responses:
+        "200": { description: Rejected }
+
+  /admin/dashboard/summary:
+    get:
+      tags: [Admin]
+      summary: Dashboard KPI summary
+      security: [{ AdminBearerAuth: [] }]
+      responses:
+        "200": { description: Summary }
+
+  /admin/dashboard/ledger:
+    get:
+      tags: [Admin]
+      summary: Platform-wide ledger view
+      security: [{ AdminBearerAuth: [] }]
+      responses:
+        "200": { description: Ledger }
+
+  /admin/dashboard/accounts:
+    get:
+      tags: [Admin]
+      summary: User accounts table (with IP tracking)
+      security: [{ AdminBearerAuth: [] }]
+      responses:
+        "200": { description: Accounts }
+
+  /admin/dashboard/fraud-flags:
+    get:
+      tags: [Admin]
+      summary: List open compliance/fraud flags
+      security: [{ AdminBearerAuth: [] }]
+      responses:
+        "200": { description: Fraud flags }
+
+  /admin/dashboard/fraud-flags/{id}/resolve:
+    post:
+      tags: [Admin]
+      summary: Resolve a fraud flag
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Resolved }
+
+components:
+  securitySchemes:
+    UserBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token returned by POST /auth/login.
+    AdminBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token returned by POST /admin/login.
+
+  parameters:
+    UserIdQuery:
+      name: user_id
+      in: query
+      required: true
+      schema: { type: string }
+    TournamentId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    TableId:
+      name: tableId
+      in: path
+      required: true
+      schema: { type: string }
+    GameId:
+      name: game_id
+      in: path
+      required: true
+      schema: { type: integer }
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+    Forbidden:
+      description: Authenticated identity is not authorized for this resource
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail: { type: string }
+
+  schemas:
+    UserPublic:
+      type: object
+      properties:
+        id: { type: integer }
+        email: { type: string }
+        username: { type: string }
+        is_frozen: { type: boolean }
+
+    WalletTransaction:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string, example: deposit }
+        amount: { type: number }
+        timestamp: { type: string, format: date-time }
+        status: { type: string, example: succeeded }
+
+    Tournament:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        size: { type: string, enum: [MICRO, STANDARD, LARGE] }
+        stake: { type: string, enum: [NANO, MICRO, MID, MACRO] }
+        state: { type: string, enum: [WAITING, RUNNING, BREAK, FINISHED] }
+        current_level: { type: integer }
+        max_players: { type: integer }
+        max_players_per_table: { type: integer }
+        buyin_total: { type: number }
+        buyin_prize_pool: { type: number }
+        buyin_house_fee: { type: number }
+        buyin_staff_tip: { type: number }
+        level_start_time: { type: string, format: date-time, nullable: true }
+        level_end_time: { type: string, format: date-time, nullable: true }
+        players_remaining: { type: integer }
+        total_players: { type: integer }
+        small_blind: { type: integer, nullable: true }
+        big_blind: { type: integer, nullable: true }
+
+    FairnessReveal:
+      type: object
+      properties:
+        seed: { type: string, description: "32-byte CSPRNG seed, hex-encoded" }
+        commit: { type: string, description: sha256(seed) }
+        cut_index: { type: integer }
+        deck_before_cut: { type: array, items: { type: string } }
+        deck_after_cut: { type: array, items: { type: string } }

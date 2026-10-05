@@ -1,0 +1,116 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.layout {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-right: var(--space-4);
+  border-right: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+}
+
+.sidebarTitle {
+  font-size: 1.1rem;
+  color: var(--color-brass-bright);
+  margin: 0 0 var(--space-2);
+}
+
+.sidebarLink {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  padding: 4px 0;
+}
+
+.sidebarLink:hover {
+  color: var(--color-brass-bright);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.section {
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.h1 {
+  font-size: 2rem;
+  color: var(--color-brass-bright);
+  margin-bottom: var(--space-2);
+}
+
+.h2 {
+  font-size: 1.2rem;
+  color: var(--color-brass-bright);
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-2);
+}
+
+.h3 {
+  font-size: 1.02rem;
+  color: var(--color-brass);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-1);
+}
+
+.meta {
+  margin-bottom: var(--space-4);
+}
+
+.section p,
+.section ul,
+.section ol {
+  margin: var(--space-2) 0;
+}
+
+.section a {
+  color: var(--color-brass-bright);
+}
+
+.indicatorPanel {
+  display: inline-block;
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-mono);
+  color: var(--color-brass-bright);
+}
+
+@media (max-width: 800px) {
+  .layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    position: static;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+    padding-right: 0;
+    padding-bottom: var(--space-3);
+  }
+}

@@ -1,0 +1,94 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.hero {
+  padding: var(--space-7) 0 var(--space-5);
+  max-width: 640px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  color: var(--color-brass-bright);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  line-height: 1.05;
+  margin-bottom: var(--space-4);
+}
+
+.lede {
+  color: var(--color-text-muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.sectionTitle {
+  font-size: 1.6rem;
+  color: var(--color-brass-bright);
+  margin-bottom: var(--space-4);
+}
+
+.roleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.roleCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  transition: border-color 0.15s ease;
+}
+
+.roleCard:hover {
+  border-color: var(--color-brass);
+}
+
+.roleTitle {
+  font-size: 1.15rem;
+  color: var(--color-brass-bright);
+  margin: 0;
+}
+
+.roleDesc {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.applyBtn {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: var(--space-2);
+  padding: 8px 18px;
+  border: 1px solid var(--color-brass);
+  border-radius: 6px;
+  color: var(--color-brass-bright);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.textSection {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.contactLink {
+  color: var(--color-brass-bright);
+}

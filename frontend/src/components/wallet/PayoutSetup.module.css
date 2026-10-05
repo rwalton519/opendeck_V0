@@ -1,0 +1,36 @@
+.sectionTitle {
+  font-size: 1.2rem;
+  color: var(--color-brass-bright);
+  margin-bottom: var(--space-4);
+}
+
+.muted {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 var(--space-3);
+}
+
+.messageError {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+  margin: 0 0 var(--space-3);
+}
+
+.setupButton {
+  margin-top: var(--space-2);
+}
+
+.enabledRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.enabledBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-success);
+  font-weight: 600;
+  font-size: 0.95rem;
+}

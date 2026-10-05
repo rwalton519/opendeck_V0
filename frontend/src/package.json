@@ -1,0 +1,12 @@
+{
+  "name": "opendeck-deposit-confirmation-reference",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reference implementation of the missing card-deposit confirmation step for OpenDeck's frontend. Not a standalone app - copy these files into the real frontend project. See README.md.",
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "@stripe/react-stripe-js": "^2.0.0 || ^3.0.0",
+    "@stripe/stripe-js": "^2.0.0 || ^3.0.0"
+  }
+}

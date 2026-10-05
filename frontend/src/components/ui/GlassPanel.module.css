@@ -1,0 +1,9 @@
+.panel {
+  background: var(--color-glass-fill);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-5);
+}

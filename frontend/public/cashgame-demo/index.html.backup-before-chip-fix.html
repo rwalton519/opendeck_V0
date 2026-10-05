@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Cash Game Demo — opendeck.ca/cashgame-demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /*
+    Same token set as src/styles/tokens.css ("the table at night": felt
+    green + brushed brass, glass-and-monospace fairness readout), plus the
+    exact felt/seat/fairness rules copied from CashGameTablePage.module.css
+    and TournamentTablePage.module.css so this demo uses the program's
+    actual table UI rather than a reskin.
+  */
+  :root {
+    --color-bg: #0a0d0c;
+    --color-surface: #121916;
+    --color-surface-raised: #1a2320;
+    --color-felt: #0f4c3a;
+    --color-felt-dark: #0a352a;
+    --color-brass: #c9a24b;
+    --color-brass-bright: #e3c374;
+    --color-text: #eef2ef;
+    --color-text-muted: #93a39c;
+    --color-border: rgba(238, 242, 239, 0.1);
+    --color-danger: #c0392b;
+    --color-success: #3fbf7f;
+    --color-glass-fill: rgba(238, 242, 239, 0.06);
+    --color-glass-border: rgba(238, 242, 239, 0.16);
+
+    --font-display: "Bebas Neue", "Arial Narrow", sans-serif;
+    --font-body: "Manrope", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+
+    --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+    --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+
+    --radius-sm: 6px; --radius-md: 12px; --radius-lg: 20px;
+    --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+  a { color: inherit; }
+  code { font-family: var(--font-mono); }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; flex-direction: column; }
+  .brand .name {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    letter-spacing: 0.04em;
+    color: var(--color-brass-bright);
+  }
+  .brand .sub {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+  .session-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 0.85rem;
+  }
+  .pill {
+    background: var(--color-glass-fill);
+    border: 1px solid var(--color-glass-border);
+    border-radius: 999px;
+    padding: var(--space-1) var(--space-3);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+  .pill b { color: var(--color-brass-bright); }
+  .live-badge-on { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-success); }
+  .live-badge-off { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-text-muted); }
+  .action-error { color: var(--color-danger); font-size: 0.82rem; margin-bottom: var(--space-3); min-height: 1.2em; }
+  .btn-link {
+    background: none; border: none; color: var(--color-text-muted);
+    text-decoration: underline; cursor: pointer; font-size: 0.8rem;
+    font-family: var(--font-body); padding: 0;
+  }
+  .btn-link:hover { color: var(--color-brass-bright); }
+
+  main { max-width: 1080px; margin: 0 auto; padding: var(--space-6); }
+  .hidden { display: none !important; }
+
+  /* ---- shared glass panel + button, ported from GlassPanel/Button ---- */
+  .panel {
+    background: var(--color-glass-fill);
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-panel);
+    padding: var(--space-5);
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-weight: 700; font-size: 0.95rem; cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+    font-family: var(--font-body);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-primary {
+    background: linear-gradient(180deg, var(--color-brass-bright), var(--color-brass));
+    color: #1a1305;
+    box-shadow: 0 4px 14px rgba(201, 162, 75, 0.25);
+  }
+  .btn-primary:not(:disabled):hover { box-shadow: 0 6px 18px rgba(201, 162, 75, 0.35); }
+  .btn-ghost {
+    background: transparent; color: var(--color-text); border-color: var(--color-border);
+  }
+  .btn-ghost:not(:disabled):hover { border-color: var(--color-brass); color: var(--color-brass-bright); }
+  .btn-success {
+    background: transparent; color: var(--color-success); border-color: var(--color-success);
+  }
+  .btn-success:not(:disabled):hover { background: rgba(63, 191, 127, 0.12); }
+  .btn-sm { padding: var(--space-2) var(--space-3); font-size: 0.8rem; }
+
+  input[type=text] {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-glass-border);
+    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+  }
+  input[type=text]:focus { outline: 2px solid var(--color-brass); }
+
+  /* ---------------------- GATE ---------------------- */
+  .gate-hero { max-width: 640px; margin-bottom: var(--space-6); }
+  .eyebrow {
+    font-family: var(--font-mono); color: var(--color-brass-bright);
+    font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: var(--space-3);
+  }
+  .gate-hero h1 {
+    font-family: var(--font-display); font-weight: 400;
+    font-size: clamp(2rem, 4.5vw, 3rem); line-height: 1.05; margin: 0 0 var(--space-3);
+    letter-spacing: 0.02em;
+  }
+  .gate-hero p { color: var(--color-text-muted); line-height: 1.6; margin: 0; }
+
+  .invite-row {
+    display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-4);
+    flex-wrap: wrap;
+  }
+  .invite-row input[type=text] { flex: 1; min-width: 220px; }
+
+  .gate-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4); margin-bottom: var(--space-5);
+  }
+  .seat-pick-card { text-align: center; }
+  .seat-pick-card .avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(180deg, var(--color-brass-bright), var(--color-brass));
+    color: #1a1305; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 1.5rem; margin: 0 auto var(--space-3);
+  }
+  .seat-pick-card h3 { margin: 0 0 var(--space-1); color: var(--color-brass-bright); }
+  .seat-pick-card p { margin: 0 0 var(--space-4); color: var(--color-text-muted); font-size: 0.85rem; }
+  .seat-pick-card .taken-tag {
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-text-muted);
+    margin-top: var(--space-2);
+  }
+
+  .open-invite { border-top: 1px solid var(--color-glass-border); padding-top: var(--space-5); margin-top: var(--space-2); }
+  .open-invite h2 { font-size: 1.1rem; color: var(--color-brass-bright); margin: 0 0 var(--space-2); }
+  .open-invite p { color: var(--color-text-muted); font-size: 0.85rem; margin: 0 0 var(--space-3); }
+  .open-invite-row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .gate-error { color: var(--color-danger); font-size: 0.85rem; margin-top: var(--space-2); min-height: 1.2em; }
+
+  /* ---------------------- TABLE (ported from CashGameTablePage.module.css) ---------------------- */
+  .room-container { display: flex; justify-content: center; align-items: center; padding: var(--space-4) 0; }
+  .canvas { position: relative; width: 100%; max-width: 960px; height: 500px; }
+
+  .felt {
+    position: absolute; top: 10%; left: 4%; width: 92%; height: 80%;
+    background: radial-gradient(circle, #1a426e 0%, #0d233d 100%);
+    border: 14px solid #221a15;
+    border-radius: 240px;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.9), 0 16px 32px rgba(0,0,0,0.6);
+    display: flex; justify-content: center; align-items: center;
+  }
+  .felt-inner-ring {
+    width: 94%; height: 92%; border: 2px dashed rgba(212,175,55,0.2); border-radius: 220px;
+    display: flex; justify-content: center; align-items: center;
+  }
+  .meta-text { text-align: center; }
+  .meta-text h2 { margin: 0; font-size: 1.4rem; color: var(--color-brass-bright); letter-spacing: 0.05em; text-transform: uppercase; font-family: var(--font-display); font-weight: 400; }
+  .meta-text p { margin: var(--space-2) 0 0; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 0.9rem; }
+  .meta-text .hand-line { margin-top: var(--space-1); font-size: 0.8rem; }
+
+  .seat-node { position: absolute; transform: translate(-50%, -50%); z-index: 20; text-align: center; }
+  .player-card { min-width: 130px; border-color: var(--color-brass) !important; }
+  .player-name { display: block; font-weight: bold; font-size: 0.85rem; color: #fff; margin-bottom: var(--space-1); }
+  .player-chips { display: block; font-size: 0.8rem; color: var(--color-brass-bright); font-family: var(--font-mono); }
+  .player-tag { display: block; font-size: 0.68rem; color: var(--color-text-muted); margin-top: 2px; }
+  .player-cards-mini { display: flex; gap: 3px; justify-content: center; margin-top: var(--space-2); }
+  .mini-card {
+    width: 22px; height: 30px; border-radius: 3px; background: var(--color-surface-raised);
+    border: 1px solid var(--color-glass-border); font-family: var(--font-mono);
+    font-size: 0.62rem; display: flex; align-items: center; justify-content: center;
+  }
+  .mini-card.back { background: repeating-linear-gradient(135deg, #221a15, #221a15 3px, #2c2118 3px, #2c2118 6px); }
+
+  .player-card-pulse { animation: seatPulse 0.7s ease-out; }
+  @keyframes seatPulse {
+    0% { box-shadow: 0 0 0 0 rgba(212,175,55,0.55); border-color: var(--color-brass-bright) !important; }
+    100% { box-shadow: 0 0 0 14px rgba(212,175,55,0); border-color: var(--color-brass) !important; }
+  }
+
+  .busted-tag { color: var(--color-danger); font-size: 0.72rem; display: block; margin-bottom: var(--space-1); }
+
+  /* "Backtest your hand?" - bottom-right of the table canvas, same
+     treatment as CashGameTablePage.module.css's .backtestLink. */
+  .backtest-link {
+    position: absolute; bottom: calc(-1 * var(--space-6)); right: var(--space-2);
+    color: var(--color-text-muted); font-size: 0.78rem; font-family: var(--font-mono);
+    text-decoration: none; border-bottom: 1px dashed var(--color-glass-border); z-index: 25;
+  }
+  .backtest-link:hover { color: var(--color-brass-bright); border-bottom-color: var(--color-brass); }
+
+  /* ---------------------- BELOW-TABLE PANELS (ported from TournamentTablePage.module.css) ---------------------- */
+  .below-table { display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--space-5); margin-top: var(--space-4); }
+  @media (max-width: 800px) { .below-table { grid-template-columns: 1fr; } }
+
+  .street-row {
+    display: flex; gap: var(--space-4); align-items: baseline; margin-bottom: var(--space-4);
+    font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-text-muted);
+    text-transform: uppercase; letter-spacing: 0.05em; flex-wrap: wrap;
+  }
+  .pot-value { color: var(--color-brass-bright); font-weight: 600; border-radius: var(--radius-sm); padding: 2px 6px; }
+  .pot-pulse { animation: potFlash 0.5s ease-out; }
+  @keyframes potFlash { 0% { background: rgba(212,175,55,0.35); } 100% { background: transparent; } }
+
+  .community-row { display: flex; gap: var(--space-2); min-height: 58px; align-items: center; margin-bottom: var(--space-4); flex-wrap: wrap; }
+  .card {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 42px; height: 58px; border-radius: var(--radius-sm);
+    background: var(--color-surface-raised); border: 1px solid var(--color-glass-border);
+    font-family: var(--font-mono); font-size: 1.1rem; color: var(--color-text);
+  }
+  .card.red { color: #e0655f; }
+  .card-enter { animation: cardFlip 0.4s ease-out; }
+  @keyframes cardFlip { 0% { transform: rotateY(90deg) scale(0.8); opacity: 0; } 100% { transform: rotateY(0deg) scale(1); opacity: 1; } }
+
+  .hole-row { display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-4); }
+  .hole-row .card { min-width: 48px; height: 66px; font-size: 1.25rem; border-color: var(--color-brass); }
+
+  .winner-banner {
+    background: rgba(63,191,127,0.12); border: 1px solid var(--color-success);
+    color: var(--color-success); border-radius: var(--radius-sm); padding: var(--space-3);
+    font-size: 0.9rem; margin-bottom: var(--space-4);
+  }
+
+  .controls-row { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4); }
+
+  .fairness-panel { border-top: 1px solid var(--color-glass-border); padding-top: var(--space-4); }
+  .fairness-title { font-size: 1rem; color: var(--color-brass-bright); margin: 0 0 var(--space-3); }
+  .fairness-body { display: flex; flex-direction: column; gap: var(--space-3); }
+  .fairness-label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 2px; }
+  .fairness-value { display: block; font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-success); word-break: break-all; }
+  .verified-ok { display: inline-block; margin-top: var(--space-1); font-size: 0.75rem; color: var(--color-success); font-weight: 600; }
+  .verified-pending { display: inline-block; margin-top: var(--space-1); font-size: 0.75rem; color: var(--color-text-muted); }
+  .muted { color: var(--color-text-muted); font-size: 0.85rem; }
+
+  .footer-note {
+    margin-top: var(--space-7); padding-top: var(--space-4); border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted); font-size: 0.78rem; line-height: 1.6;
+  }
+  .footer-note code { color: var(--color-brass-bright); }
+
+  /* ---------------------- PAGE LAYOUT (table column + history sidebar) ---------------------- */
+  .page-layout {
+    display: flex; align-items: flex-start; gap: var(--space-6);
+    max-width: 1400px; margin: 0 auto; padding: var(--space-6);
+  }
+  .page-layout .table-column { flex: 1; min-width: 0; max-width: 1080px; margin: 0 auto; }
+  .history-sidebar {
+    width: 300px; flex-shrink: 0; position: sticky; top: var(--space-5);
+    max-height: calc(100vh - var(--space-7)); display: flex; flex-direction: column;
+  }
+  .history-panel { display: flex; flex-direction: column; min-height: 0; }
+  .history-title { font-size: 1rem; color: var(--color-brass-bright); margin: 0 0 var(--space-3); }
+  .history-list { overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); }
+  .history-entry {
+    border: 1px solid var(--color-glass-border); border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3); font-size: 0.8rem; background: var(--color-glass-fill);
+  }
+  .history-entry .h-hand { font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-muted); display: flex; justify-content: space-between; }
+  .history-entry .h-winner { color: var(--color-success); margin-top: 2px; }
+  .history-entry .h-pot { color: var(--color-brass-bright); font-family: var(--font-mono); }
+  @media (max-width: 1100px) {
+    .page-layout { flex-direction: column; padding: var(--space-4); }
+    .page-layout .table-column { max-width: 100%; }
+    .history-sidebar { width: 100%; position: static; max-height: 320px; }
+  }
+
+  /* ---------------------- BETTING ---------------------- */
+  .turn-banner {
+    font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-brass-bright);
+    background: rgba(201,162,75,0.1); border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-3);
+  }
+  .betting-row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--space-4); }
+  .bet-amount-input {
+    width: 90px; background: var(--color-surface-raised); border: 1px solid var(--color-glass-border);
+    color: var(--color-text); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3);
+    font-family: var(--font-mono); font-size: 0.9rem;
+  }
+  .btn-danger { background: transparent; color: var(--color-danger); border-color: var(--color-danger); }
+  .btn-danger:not(:disabled):hover { background: rgba(192,57,43,0.12); }
+  .seat-bet-pill {
+    display: inline-block; margin-top: 2px; font-family: var(--font-mono); font-size: 0.72rem;
+    color: var(--color-brass-bright); background: var(--color-glass-fill);
+    border: 1px solid var(--color-glass-border); border-radius: 999px; padding: 1px 8px;
+  }
+  .folded-tag { color: var(--color-text-muted); font-size: 0.72rem; display: block; margin-bottom: var(--space-1); }
+  .player-card.is-folded { opacity: 0.45; }
+  .player-card.is-to-act { border-color: var(--color-brass-bright) !important; box-shadow: 0 0 0 2px rgba(227,195,116,0.35); }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="name">♠ TRANSPARENT POKER</span>
+      <span class="sub">opendeck.ca/cashgame-demo — play money, no account required</span>
+    </div>
+    <div class="session-bar">
+      <span id="connBadge" class="live-badge-off">○ Connecting…</span>
+      <span id="sessionBar"></span>
+    </div>
+  </div>
+
+  <div class="page-layout">
+  <main class="table-column">
+
+    <!-- =================== GATE =================== -->
+    <div id="gate">
+      <div class="gate-hero">
+        <p class="eyebrow">Cash game demo · $1 / $2 · $500 stacks</p>
+        <h1>Sit down without an account.</h1>
+        <p>
+          A 9-seat table running the same shuffle protocol as the real thing — an HMAC-SHA256-seeded
+          Fisher-Yates shuffle, deck committed before the cards are dealt and the seed revealed after
+          each hand so anyone can check it. Enter a unique username and take any open seat. Every player
+          connected to this page sees the same occupied seats, cards, pot and betting action live.
+        </p>
+        <div class="invite-row">
+          <input type="text" id="permaLink" readonly />
+          <button class="btn btn-ghost btn-sm" onclick="copyLink('permaLink')">Copy permanent link</button>
+        </div>
+      </div>
+
+      <div class="panel open-invite">
+        <h2>Join with a username</h2>
+        <p>Anyone with this page's link can create a unique username and get the same $500 play-money stack. No password — this is a demo table, not a real-money account.</p>
+        <div class="open-invite-row">
+          <input type="text" id="customUsername" placeholder="Pick a username" maxlength="20" />
+          <button class="btn btn-primary" onclick="enterAsCustom()">Create username &amp; join</button>
+        </div>
+        <div class="gate-error" id="gateError"></div>
+      </div>
+    </div>
+
+    <!-- =================== APP =================== -->
+    <div id="app" class="hidden">
+
+      <div class="room-container">
+        <div class="canvas">
+          <div class="felt">
+            <div class="felt-inner-ring">
+              <div class="meta-text">
+                <h2>No Limit Hold'em</h2>
+                <p>Blinds: $1.00 / $2.00</p>
+                <p class="hand-line" id="handLine">Hand #0 · waiting to deal</p>
+              </div>
+            </div>
+          </div>
+          <div id="seatsLayer"></div>
+          <a class="backtest-link" href="/backtest?mode=demo" target="_blank" rel="noopener">Backtest your hand?</a>
+        </div>
+      </div>
+
+      <div class="below-table">
+        <div class="panel">
+          <div class="street-row" id="streetRow"></div>
+
+          <div class="action-error" id="actionError"></div>
+          <div id="winnerBanner"></div>
+
+          <div class="community-row" id="communityRow"></div>
+
+          <div>
+            <span class="fairness-label">Your hole cards</span>
+            <div class="hole-row" id="holeRow"></div>
+          </div>
+
+          <div id="turnBanner"></div>
+
+          <div class="betting-row hidden" id="bettingRow">
+            <button class="btn btn-danger btn-sm" id="foldBtn" onclick="foldAction()">Fold</button>
+            <button class="btn btn-ghost btn-sm" id="checkCallBtn" onclick="checkOrCallAction()">Check</button>
+            <input type="text" inputmode="decimal" class="bet-amount-input" id="betAmountInput" placeholder="0.00" />
+            <button class="btn btn-primary btn-sm" id="betRaiseBtn" onclick="betOrRaiseAction()">Bet</button>
+          </div>
+
+          <div class="controls-row">
+            <button class="btn btn-primary" id="dealBtn" onclick="dealHand()">Deal Next Hand</button>
+            <button class="btn btn-ghost" id="rebuyBtn" onclick="rebuySelf()">Rebuy $500</button>
+          </div>
+        </div>
+
+        <div class="panel fairness-panel">
+          <h2 class="fairness-title">Fairness Proof</h2>
+          <div id="fairnessBody"></div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        This table is synced across tabs and devices: all 9 seats, the deck
+        commit/reveal, and hand results are computed once by a small dedicated backend endpoint
+        (<code>/cashgame-demo/*</code>, see <code>routers/cashGameDemoRouter.js</code>) and pushed to
+        every open tab live over Server-Sent Events — open a second tab or sign in as Ach elsewhere and
+        you'll see the same table update in both places. Live table state (seats, current hand) has no
+        database and resets whenever the backend restarts, but the <b>Hand History</b> panel is different:
+        every finished hand is written to a permanent <code>demo_hand_history</code> database record
+        (shared with the <a href="/heads-up" target="_blank" rel="noopener">Heads Up demo</a> table) that
+        survives restarts, so it's a real historical ledger rather than a per-session log. The deck order
+        (2→A per suit, ♠♥♦♣), the HMAC-SHA256-seeded Fisher-Yates shuffle, and the SHA-256 commit/reveal
+        are the same algorithm the production fairness panel uses — just running server-side now instead
+        of duplicated per-tab, which is also what lets hole cards actually stay private between seats
+        until showdown. Betting runs a normal four-street structure (preflop, flop, turn, river) with
+        fold/check/call/bet/raise available on your turn; hands that don't get through to showdown end
+        the moment everyone but one player has folded. Blinds are posted and rotated automatically. Three
+        house seats play automatically so the table isn't empty; they rebuy on their own when busted.
+      </div>
+
+    </div>
+
+  </main>
+
+  <aside class="history-sidebar" id="historySidebar">
+    <div class="panel history-panel">
+      <h2 class="history-title">Hand History</h2>
+      <p class="muted" id="historyEmpty">No completed hands yet.</p>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </aside>
+  </div>
+
+<script>
+/* ============================================================
+   Backend base URL
+   Confirmed against production directly - curl https://opendeck.ca/webapp/api/health
+   and curl https://opendeck.ca/webapp/health both returned the SPA's
+   index.html (nginx has no route for either yet), so this is coordinated
+   with a real nginx location block for /webapp/ -> the backend, not
+   guessed. See the nginx config note shipped alongside this change. A
+   `?api=` override is available for local/dev testing.
+   ============================================================ */
+const DEMO_API_BASE = (() => {
+  const override = new URLSearchParams(location.search).get('api');
+  if (override) return override.replace(/\/$/, '');
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    return 'http://localhost:8000/cashgame-demo';
+  }
+  return `${location.origin}/webapp/cashgame-demo`;
+})();
+
+const SEAT_COORDINATES = {
+  0: { top: '86%', left: '50%' },
+  1: { top: '72%', left: '17%' },
+  2: { top: '42%', left: '11%' },
+  3: { top: '14%', left: '23%' },
+  4: { top: '4%',  left: '50%' },
+  5: { top: '14%', left: '77%' },
+  6: { top: '42%', left: '89%' },
+  7: { top: '72%', left: '83%' },
+  8: { top: '86%', left: '67%' },
+};
+const SEAT_COUNT = 9;
+const SUIT_SYMBOL = { s: '♠', h: '♥', d: '♦', c: '♣' };
+const HAND_ENDPOINT_ERROR = "Couldn't reach the demo table backend.";
+
+/* ============================================================
+   Local (per-tab) state - the actual game state lives on the server
+   and arrives via SSE; this only tracks this tab's identity, the last
+   snapshot received, and connection status.
+   ============================================================ */
+function getClientId() {
+  let id = sessionStorage.getItem('cgdemo_client_id');
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    sessionStorage.setItem('cgdemo_client_id', id);
+  }
+  return id;
+}
+const CLIENT_ID = getClientId();
+
+const HISTORY_KEY = 'cgdemo_hand_history_cache'; // short-lived render cache only, not the source of truth
+function loadHandHistoryCache() {
+  try { return JSON.parse(sessionStorage.getItem(HISTORY_KEY)) || []; }
+  catch (e) { return []; }
+}
+function saveHandHistoryCache(list) {
+  try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 50))); } catch (e) {}
+}
+
+const state = {
+  myIdentity: null, // { id, username } once /join succeeds
+  snapshot: null,   // last SSE "state" payload
+  connected: false,
+  // The permanent, continuously-updating ledger (models/demo_hand_history.js
+  // via GET /cashgame-demo/history and, once connected, every SSE snapshot's
+  // `handHistory` field). Seeded from sessionStorage only so the panel isn't
+  // empty for one paint while the initial fetch is in flight - the fetch
+  // below immediately overwrites it with the server's actual record, which
+  // is the real source of truth and outlives this tab/session.
+  handHistory: loadHandHistoryCache(),
+};
+
+/* ============================================================
+   API helpers
+   ============================================================ */
+async function apiPost(path, body) {
+  let res;
+  try {
+    res = await fetch(`${DEMO_API_BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: CLIENT_ID, ...body }),
+    });
+  } catch (err) {
+    throw new Error(HAND_ENDPOINT_ERROR);
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || 'Request failed.');
+  return data;
+}
+
+let eventSource = null;
+let heartbeatTimer = null;
+let leavingPage = false;
+
+function startHeartbeat() {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  if (!state.myIdentity) return;
+  const send = () => {
+    if (!state.myIdentity || leavingPage) return;
+    fetch(`${DEMO_API_BASE}/heartbeat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: CLIENT_ID }),
+      keepalive: true,
+    }).catch(() => {});
+  };
+  send();
+  heartbeatTimer = setInterval(send, 10000);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+function notifyLeave() {
+  if (!state.myIdentity || leavingPage) return;
+  leavingPage = true;
+  stopHeartbeat();
+  const body = JSON.stringify({ clientId: CLIENT_ID });
+  try {
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: 'application/json' });
+      navigator.sendBeacon(`${DEMO_API_BASE}/leave`, blob);
+    } else {
+      fetch(`${DEMO_API_BASE}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  } catch (_) {}
+}
+
+window.addEventListener('pagehide', notifyLeave);
+
+function connectStream() {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource(`${DEMO_API_BASE}/stream?clientId=${encodeURIComponent(CLIENT_ID)}`);
+  eventSource.addEventListener('state', (ev) => {
+    state.connected = true;
+    state.snapshot = JSON.parse(ev.data);
+    // The server's snapshot carries the authoritative, persistent hand
+    // history tail (models/demo_hand_history.js) - this is what keeps the
+    // ledger correct and in sync across every open tab/device without this
+    // tab doing any of its own dedupe/append logic.
+    if (Array.isArray(state.snapshot.handHistory)) {
+      state.handHistory = state.snapshot.handHistory;
+      saveHandHistoryCache(state.handHistory);
+    }
+    render();
+  });
+  eventSource.onopen = () => { state.connected = true; renderConnBadge(); };
+  eventSource.onerror = () => {
+    // Browsers auto-retry EventSource connections; just reflect status.
+    state.connected = false;
+    renderConnBadge();
+  };
+}
+
+/** GET /history - used before joining (or if the SSE stream hasn't opened
+ * yet) so the Hand History panel is a fixture of the page itself, not
+ * something that only appears once a visitor sits down. */
+async function refreshHandHistoryFromServer() {
+  try {
+    const res = await fetch(`${DEMO_API_BASE}/history`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data.history)) {
+      state.handHistory = data.history;
+      saveHandHistoryCache(state.handHistory);
+      render();
+    }
+  } catch (e) {
+    // Non-fatal - the panel just keeps showing whatever it last had
+    // (server cache, or empty on a first-ever visit).
+  }
+}
+
+/* ============================================================
+   Render helpers
+   ============================================================ */
+function $(id) { return document.getElementById(id); }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function fmt(n) { return `$${Number(n).toFixed(2)}`; }
+
+function cardHtml(card) {
+  const symbol = SUIT_SYMBOL[card.suit];
+  const red = card.suit === 'h' || card.suit === 'd';
+  return `<span class="card ${red ? 'red' : ''}">${escapeHtml(card.rank)}${symbol}</span>`;
+}
+function miniCardHtml(card) {
+  if (!card) return `<span class="mini-card back"></span>`;
+  const symbol = SUIT_SYMBOL[card.suit];
+  const red = card.suit === 'h' || card.suit === 'd';
+  return `<span class="mini-card" style="color:${red ? '#e0655f' : 'inherit'}">${escapeHtml(card.rank)}${symbol}</span>`;
+}
+function showActionError(message) {
+  $('actionError').textContent = message || '';
+  if (message) setTimeout(() => { if ($('actionError').textContent === message) $('actionError').textContent = ''; }, 4000);
+}
+
+/* ============================================================
+   Gate flow
+   ============================================================ */
+function buildPermaLink() {
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.searchParams.set('invite', 'CG-OPEN-JOIN');
+  return url.toString();
+}
+function copyLink(inputId) {
+  const el = $(inputId);
+  el.select();
+  el.setSelectionRange(0, 99999);
+  try { document.execCommand('copy'); } catch (e) {}
+  if (navigator.clipboard) navigator.clipboard.writeText(el.value).catch(() => {});
+}
+
+async function enterAsCustom() {
+  const raw = $('customUsername').value.trim();
+  const err = $('gateError');
+  if (!raw) { err.textContent = 'Enter a username.'; return; }
+  if (!/^[A-Za-z0-9_]{2,20}$/.test(raw)) {
+    err.textContent = 'Usernames are 2-20 characters: letters, numbers, underscore.';
+    return;
+  }
+  try {
+    const result = await apiPost('/join', { kind: 'custom', username: raw });
+    state.myIdentity = { id: result.identityId, username: result.username };
+    leavingPage = false;
+    err.textContent = '';
+    enterApp();
+  } catch (e) {
+    err.textContent = e.message;
+  }
+}
+
+function enterApp() {
+  $('gate').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  connectStream();
+  startHeartbeat();
+  render();
+}
+
+function signOut() {
+  if (state.myIdentity) {
+    const body = JSON.stringify({ clientId: CLIENT_ID });
+    fetch(`${DEMO_API_BASE}/leave`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  }
+  stopHeartbeat();
+  leavingPage = true;
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  state.myIdentity = null;
+  state.snapshot = null;
+  state.connected = false;
+  $('app').classList.add('hidden');
+  $('gate').classList.remove('hidden');
+  $('customUsername').value = '';
+  // Hand History is a page-level fixture, not tied to being signed in - it
+  // stays visible and keeps whatever it last loaded from the server.
+  render();
+}
+
+/* ============================================================
+   Actions
+   ============================================================ */
+async function takeSeat(seatIndex) {
+  try {
+    await apiPost('/take-seat', { seatIndex });
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+async function rebuySelf() {
+  try {
+    await apiPost('/rebuy', {});
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+async function dealHand() {
+  if (!state.snapshot || state.snapshot.mySeatIndex == null || state.snapshot.dealerSeat !== state.snapshot.mySeatIndex) {
+    showActionError('Only the designated Dealer can deal the next hand.');
+    return;
+  }
+  try {
+    await apiPost('/deal', {});
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+
+/* ---- Betting: fold / check / call / bet / raise, one action per turn ---- */
+async function foldAction() {
+  try {
+    await apiPost('/action', { type: 'fold' });
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+async function checkOrCallAction() {
+  const snap = state.snapshot;
+  if (!snap) return;
+  const mySeat = snap.mySeatIndex != null ? snap.seats[snap.mySeatIndex] : null;
+  const toCall = Math.max(0, (snap.currentBet || 0) - (mySeat?.currentBet || 0));
+  try {
+    await apiPost('/action', { type: toCall > 0 ? 'call' : 'check' });
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+async function betOrRaiseAction() {
+  const snap = state.snapshot;
+  if (!snap) return;
+  const raw = $('betAmountInput').value.trim();
+  const amount = Number(raw);
+  if (!raw || Number.isNaN(amount) || amount <= 0) {
+    showActionError('Enter a bet amount.');
+    return;
+  }
+  const isRaise = (snap.currentBet || 0) > 0;
+  try {
+    await apiPost('/action', { type: isRaise ? 'raise' : 'bet', amount });
+    $('betAmountInput').value = '';
+  } catch (e) {
+    showActionError(e.message);
+  }
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+function render() {
+  renderSessionBar();
+  renderConnBadge();
+  renderHandHistory(); // permanent fixture: renders regardless of gate/app state
+  if ($('app').classList.contains('hidden')) return;
+  const snap = state.snapshot;
+  if (!snap) return;
+
+  renderSeats(snap);
+  renderHandLine(snap);
+  renderStreetRow(snap);
+  renderCommunity(snap);
+  renderHoleCards(snap);
+  renderFairness(snap);
+  renderControls(snap);
+  renderWinnerBanner(snap);
+  renderBettingControls(snap);
+}
+
+function renderConnBadge() {
+  const badge = $('connBadge');
+  if (!badge) return;
+  if (!state.myIdentity) { badge.textContent = ''; return; }
+  badge.className = state.connected ? 'live-badge-on' : 'live-badge-off';
+  badge.textContent = state.connected ? '● Live' : '○ Reconnecting…';
+}
+
+function renderSessionBar() {
+  const bar = $('sessionBar');
+  if (!state.myIdentity) { bar.innerHTML = ''; return; }
+  bar.innerHTML = `
+    <span class="pill">Signed in as <b>${escapeHtml(state.myIdentity.username)}</b></span>
+    <button class="btn-link" onclick="signOut()">Sign out</button>
+  `;
+}
+
+function renderSeats(snap) {
+  const layer = $('seatsLayer');
+  let html = '';
+  for (let i = 0; i < SEAT_COUNT; i++) {
+    const coords = SEAT_COORDINATES[i];
+    const seat = snap.seats[i];
+    const style = `top:${coords.top}; left:${coords.left};`;
+    if (!seat) {
+      const canJoin = !!state.myIdentity && snap.mySeatIndex == null && !snap.dealing;
+      html += `<div class="seat-node" style="${style}">
+        <button class="btn btn-primary btn-sm" ${canJoin ? '' : 'disabled'} onclick="takeSeat(${i})">+ Take Seat</button>
+      </div>`;
+    } else {
+      const holeHtml = seat.holeCards.length
+        ? `<div class="player-cards-mini">${seat.holeCards.map((c) => miniCardHtml(c)).join('')}</div>`
+        : '';
+      const isToAct = snap.toActSeatIndex === i && !snap.dealing;
+      const cardClasses = ['panel', 'player-card', seat.folded ? 'is-folded' : '', isToAct ? 'is-to-act' : ''].filter(Boolean).join(' ');
+      const betPill = seat.currentBet > 0 ? `<span class="seat-bet-pill">Bet ${fmt(seat.currentBet)}</span>` : '';
+      html += `<div class="seat-node" style="${style}">
+        <div class="${cardClasses}">
+          ${seat.busted ? `<span class="busted-tag">Busted</span>` : ''}
+          ${seat.folded ? `<span class="folded-tag">Folded</span>` : ''}
+          <span class="player-name">${escapeHtml(seat.username)}${seat.isMine ? ' (you)' : ''}</span>
+          <span class="player-chips">${fmt(seat.chips)}</span>
+          ${i === snap.dealerSeat ? `<span class="player-tag">Dealer</span>` : ''}
+          ${betPill}
+          ${holeHtml}
+        </div>
+      </div>`;
+    }
+  }
+  layer.innerHTML = html;
+}
+
+function renderHandLine(snap) {
+  $('handLine').textContent = snap.handNumber === 0
+    ? 'Hand #0 · waiting to deal'
+    : `Hand #${snap.handNumber} · ${snap.street}`;
+}
+
+const STREET_LABEL = { preflop: 'Pre-Flop', flop: 'Flop', turn: 'Turn', river: 'River', showdown: 'Showdown' };
+
+function renderStreetRow(snap) {
+  const label = STREET_LABEL[snap.street] || snap.street;
+  const toCallBadge = (typeof snap.currentBet === 'number' && snap.currentBet > 0)
+    ? `<span>To call: ${fmt(snap.currentBet)}</span>` : '';
+  $('streetRow').innerHTML = `
+    <span>Hand #${snap.handNumber || '—'}</span>
+    <span>${escapeHtml(label)}</span>
+    <span class="pot-value">Pot: ${fmt(snap.pot)}</span>
+    ${toCallBadge}
+  `;
+}
+
+function renderCommunity(snap) {
+  const row = $('communityRow');
+  row.innerHTML = snap.communityCards.length === 0
+    ? `<span class="muted">No community cards yet</span>`
+    : snap.communityCards.map((c) => cardHtml(c)).join('');
+}
+
+function renderHoleCards(snap) {
+  const row = $('holeRow');
+  const seat = snap.mySeatIndex != null ? snap.seats[snap.mySeatIndex] : null;
+  if (!seat) { row.innerHTML = `<span class="muted">Take a seat to be dealt in.</span>`; return; }
+  if (seat.holeCards.length === 0) { row.innerHTML = `<span class="muted">Waiting for the next hand.</span>`; return; }
+  row.innerHTML = seat.holeCards.map((c) => cardHtml(c)).join('');
+}
+
+function renderFairness(snap) {
+  const body = $('fairnessBody');
+  const f = snap.fairness;
+  if (!f) { body.innerHTML = `<p class="muted">Deal a hand to see the deck commit hash.</p>`; return; }
+  body.innerHTML = `
+    <div class="fairness-body">
+      <div>
+        <span class="fairness-label">Deck commit</span>
+        <code class="fairness-value">${f.commitHash}</code>
+      </div>
+      ${f.revealSeed ? `
+        <div>
+          <span class="fairness-label">Reveal seed</span>
+          <code class="fairness-value">${f.revealSeed}</code>
+          <span class="${f.verified ? 'verified-ok' : 'verified-pending'}">${f.verified ? 'Verified ✓ (sha256(seed) === commit hash)' : 'Unverified'}</span>
+        </div>
+      ` : `<p class="muted">Seed reveals once this hand completes.</p>`}
+    </div>
+  `;
+}
+
+function renderControls(snap) {
+  const dealBtn = $('dealBtn');
+  dealBtn.disabled = !snap.canDeal;
+  dealBtn.textContent = snap.dealing ? 'Dealing…' : 'Deal Next Hand';
+  dealBtn.title = snap.dealerSeat != null && snap.mySeatIndex !== snap.dealerSeat
+    ? 'Only the designated Dealer can deal the next hand.'
+    : '';
+
+  const seat = snap.mySeatIndex != null ? snap.seats[snap.mySeatIndex] : null;
+  $('rebuyBtn').classList.toggle('hidden', !(seat && seat.chips <= 0));
+}
+
+function renderWinnerBanner(snap) {
+  $('winnerBanner').innerHTML = snap.lastWinnerText
+    ? `<div class="winner-banner">${escapeHtml(snap.lastWinnerText)}</div>`
+    : '';
+}
+
+/* ============================================================
+   Betting controls — shown only when it's this tab's seat to act.
+   Expects the SSE snapshot to carry: toActSeatIndex, currentBet
+   (the table's current bet to match this street), minRaise, and
+   per-seat currentBet/folded/allIn flags. Controls stay hidden
+   (rather than guessing) if the server hasn't sent that shape yet.
+   ============================================================ */
+function renderBettingControls(snap) {
+  const row = $('bettingRow');
+  const banner = $('turnBanner');
+  const mySeat = snap.mySeatIndex != null ? snap.seats[snap.mySeatIndex] : null;
+  const hasBettingFields = typeof snap.toActSeatIndex !== 'undefined';
+
+  if (!hasBettingFields || !mySeat || mySeat.folded || snap.dealing || snap.street === 'showdown') {
+    row.classList.add('hidden');
+    banner.innerHTML = '';
+    return;
+  }
+
+  const isMyTurn = snap.toActSeatIndex === snap.mySeatIndex;
+  const toCall = Math.max(0, (snap.currentBet || 0) - (mySeat.currentBet || 0));
+
+  if (!isMyTurn) {
+    row.classList.add('hidden');
+    const actingSeat = snap.toActSeatIndex != null ? snap.seats[snap.toActSeatIndex] : null;
+    banner.innerHTML = actingSeat
+      ? `<div class="turn-banner">Waiting on ${escapeHtml(actingSeat.username)}…</div>`
+      : '';
+    return;
+  }
+
+  banner.innerHTML = `<div class="turn-banner">Your turn${toCall > 0 ? ` · ${fmt(toCall)} to call` : ' · check or bet'}</div>`;
+  row.classList.remove('hidden');
+
+  const checkCallBtn = $('checkCallBtn');
+  checkCallBtn.textContent = toCall > 0 ? `Call ${fmt(toCall)}` : 'Check';
+  checkCallBtn.disabled = toCall > mySeat.chips;
+
+  const betRaiseBtn = $('betRaiseBtn');
+  betRaiseBtn.textContent = (snap.currentBet || 0) > 0 ? 'Raise to' : 'Bet';
+  betRaiseBtn.disabled = mySeat.chips <= toCall;
+
+  const input = $('betAmountInput');
+  if (!input.dataset.userEdited) {
+    const suggested = (snap.currentBet || 0) > 0
+      ? Math.min(mySeat.chips + mySeat.currentBet, (snap.currentBet || 0) + (snap.minRaise || snap.currentBet || 2))
+      : Math.min(mySeat.chips, snap.minRaise || 2);
+    input.value = suggested ? suggested.toFixed(2) : '';
+  }
+  input.max = mySeat.chips + mySeat.currentBet;
+  if (!input.dataset.bound) {
+    input.addEventListener('input', () => { input.dataset.userEdited = '1'; });
+    input.dataset.bound = '1';
+  }
+}
+
+/* ============================================================
+   Hand history — a permanent, continuously-updating ledger backed by
+   models/demo_hand_history.js (shared with /heads-up), not a per-tab
+   session log. See refreshHandHistoryFromServer() and connectStream()
+   above for how state.handHistory is kept in sync.
+   ============================================================ */
+
+function renderHandHistory() {
+  const list = $('historyList');
+  const empty = $('historyEmpty');
+  if (!state.handHistory.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  list.innerHTML = state.handHistory.map((h) => `
+    <div class="history-entry">
+      <div class="h-hand"><span>Hand #${h.handNumber}</span><span>${escapeHtml(STREET_LABEL[h.endedOnStreet] || h.endedOnStreet)}</span></div>
+      <div class="h-winner">${escapeHtml(h.winnerText)}</div>
+      <div class="h-pot">Pot: ${fmt(h.pot)}</div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+$('permaLink').value = buildPermaLink();
+render();
+refreshHandHistoryFromServer();
+</script>
+</body>
+</html>
