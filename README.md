@@ -19,7 +19,7 @@ Most online poker asks players to trust that the shuffle was fair. OpenDeck prov
 3. **Reveal** — after the hand, the seed and the real deck order are published.
 4. **Verify** — anyone can recompute the hash, re-run the deterministic shuffle (HMAC-SHA256 in counter mode driving an unbiased Fisher–Yates shuffle), apply the cut, and confirm the deck that was committed to is the deck that was dealt.
 
-The engine (`backend/commitRevealEngine.js`) is deliberately dependency-free — Node's built-in `crypto` only — so it can be audited in isolation, and the same verification runs client-side in the browser. A provisional patent application has been filed for the shuffle.
+The engine is deliberately dependency-free — Node's built-in `crypto` only — and the same verification runs client-side in the browser. A provisional patent application has been filed for the shuffle, so **the engine implementation and the client-side verifiers are not published in this public repository** — the protocol is described here, and the surrounding code shows how it integrates (see `backend/services/rng/README.md`). The live product at opendeck.ca runs the full engine.
 
 ![Provably fair shuffle](docs/images/OpenDeck_Provably_Fair_1600x900.png)
 
