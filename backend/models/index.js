@@ -32,8 +32,8 @@ const CollusionFlag = require('./collusion_flag');
 const HandHistory = require('./hand_history');
 const HandHistoryExporter = require('./hand_history_exporter');
 const DemoHandHistory = require('./demo_hand_history');
-// ADDED: backs the real provably-fair RNG engine (services/rng/deckService.js).
-const Game = require('./game');
+// NOTE (public version): the Game model backing the proprietary provably-fair
+// engine is excluded from this repository — see backend/services/rng/README.md.
 
 module.exports = {
   sequelize,
@@ -62,5 +62,4 @@ module.exports = {
   HandHistory,
   HandHistoryExporter,
   DemoHandHistory,
-  Game,
 };

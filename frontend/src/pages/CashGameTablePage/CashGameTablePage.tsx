@@ -567,7 +567,6 @@ export function CashGameTablePage() {
           {hand?.deckCommit ? <code className={styles.hash}>{hand.deckCommit}</code> : lastHand ? <><code className={styles.hash}>{lastHand.deckCommit}</code><Button className={styles.verifyButton} onClick={verifyLastHand} disabled={verifying}>{verifying ? "Verifying…" : verification?.verified ? "Verified ✓" : "Verify this hand"}</Button></> : <span className={styles.muted}>Deal a hand to see the deck commit hash.</span>}
         </GlassPanel>
       </div>
-      <Link to={`/backtest?mode=live&tableId=${encodeURIComponent(tableId)}`} className={styles.backtest}>Backtest your hand?</Link>
     </div>
   );
 }

@@ -1,5 +1,10 @@
-# Client-side fairness verifiers — not included in this public version
+# Fairness verification & hand backtesting — not included in this public version
 
-The browser-side verifiers in this folder re-implement OpenDeck's proprietary commit–reveal shuffle (seeded deterministic shuffle and cut) so players can independently check a dealt deck. Because they mirror the patent-pending protocol, their implementations are **excluded from this public repository**.
+The "Backtest your hand" feature and the browser-side fairness verifiers are part of OpenDeck's proprietary commit–reveal shuffle protocol (the subject of a provisional patent application), so they are **excluded from this public repository**. Removed with them:
 
-The fairness API client (`frontend/src/api/fairness.ts`) and types (`frontend/src/types/fairness.ts`) remain, so the integration shape is visible; the verifier code itself is not published here.
+- the verifier implementations that lived in this folder (seeded deterministic shuffle and cut, re-implemented client-side),
+- the Backtest page (`frontend/src/pages/BacktestPage/`),
+- the fairness API client (`frontend/src/api/fairness.ts`) and types (`frontend/src/types/fairness.ts`),
+- the backend practice-game router and its backing model.
+
+The protocol is described at a high level in the project README. The live product at opendeck.ca runs the full feature.

@@ -48,9 +48,6 @@ const CashGameTablePage = lazy(() =>
 const CashGameLobbyPage = lazy(() =>
   import("./pages/CashGameLobbyPage/CashGameLobbyPage").then((m) => ({ default: m.CashGameLobbyPage })),
 );
-const BacktestPage = lazy(() =>
-  import("./pages/BacktestPage/BacktestPage").then((m) => ({ default: m.BacktestPage })),
-);
 const RegisterPage = lazy(() =>
   import("./pages/RegisterPage/RegisterPage").then((m) => ({ default: m.RegisterPage })),
 );
@@ -126,9 +123,9 @@ export default function App() {
           <Route path="/cash-game" element={<CashGameTablePage />} />
           <Route path="/cash-game/:tableId" element={<CashGameTablePage />} />
 
-          {/* Provably-fair hand backtesting - see BacktestPage for the
-              two modes (demo table hand vs. generic practice shuffle). */}
-          <Route path="/backtest" element={<BacktestPage />} />
+          {/* Provably-fair hand backtesting (/backtest) is excluded from
+              this public version - it is part of the proprietary shuffle
+              protocol. See frontend/src/lib/fairness/README.md. */}
 
           {/* Catch-all 404 handler */}
           <Route
