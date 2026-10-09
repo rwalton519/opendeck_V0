@@ -129,21 +129,6 @@ router.post('/:tableId/action', requireUser, async (req, res, next) => {
   }
 });
 
-// GET /cashgame/:tableId/last-hand - mirrors /cashgame-demo/last-hand, for
-// the /backtest page's "Live Table Hand" mode. 404 until a hand has
-// completed at this table.
-router.get('/:tableId/last-hand', async (req, res, next) => {
-  try {
-    const tableId = await CashGameManager.resolveTableId(req.db, req.params.tableId);
-    const hand = CashGameManager.getLastCompletedHand(tableId);
-    if (!hand) return res.status(404).json({ detail: 'No completed hand yet at this table.' });
-    res.json(hand);
-  } catch (err) {
-    if (err.statusCode) return next(err);
-    next(new HttpError(400, err.message));
-  }
-});
-
 // POST /cashgame/add_chips
 router.post('/add_chips', async (req, res, next) => {
   try {

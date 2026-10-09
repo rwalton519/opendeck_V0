@@ -147,17 +147,6 @@ function createDemoTableRouter(room) {
     res.json({ success: true });
   });
 
-  // GET /:room/last-hand - used by the /backtest page. Returns everything
-  // needed to independently re-derive the shuffle for the most recently
-  // completed hand at this table and confirm it against what was actually
-  // dealt, without asking the caller to trust this server's own `verified`
-  // flag. 404 until at least one hand has gone to completion.
-  router.get('/last-hand', (req, res) => {
-    const hand = room.getLastCompletedHand();
-    if (!hand) return res.status(404).json({ detail: 'No completed hand yet - deal a hand at this table first.' });
-    res.json(hand);
-  });
-
   // GET /:room/history?limit=50 - the persistent, permanent hand-history
   // ledger (services/demo/createDemoRoom.js / models/demo_hand_history.js),
   // shared across every demo room. Available without joining/seating, so
