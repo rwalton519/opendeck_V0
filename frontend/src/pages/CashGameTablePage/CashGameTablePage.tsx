@@ -219,8 +219,6 @@ export function CashGameTablePage() {
   useCashGameStream(tableId, refresh);
 
   const hand = table?.hand ?? null;
-  const phase = hand?.phase;
-  const handNumber = hand?.handNumber;
 
   const mySeatIndex = userId != null ? Object.entries(seats).find(([, p]) => p && p.userId === userId)?.[0] : undefined;
   const mySeatIndexNum = mySeatIndex == null ? null : Number(mySeatIndex);
