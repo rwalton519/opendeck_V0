@@ -3,13 +3,11 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from "reac
 import { Button } from "../../components/ui/Button";
 import { GlassPanel } from "../../components/ui/GlassPanel";
 import { cashGameApi } from "../../api/cashgame";
-import { fairnessApi } from "../../api/fairness";
 import { onchainApi } from "../../api/onchain";
 import { isChainConfigured } from "../../config/chain";
 import { connectWallet, ensureCorrectNetwork, fundTableWithUsdc, signMessage } from "../../lib/blockchain/browserWallet";
 import { useAuth } from "../../hooks/useAuth";
 import { useCashGameStream } from "../../hooks/useCashGameStream";
-import { verifyLiveHand } from "../../lib/fairness/liveVerifier";
 import {
   CASH_SEAT_COUNT,
   DEFAULT_CASH_TABLE_ID,
@@ -18,7 +16,6 @@ import {
   type CashSeatMap,
   type CashTableState,
 } from "../../types/cashgame";
-import type { LiveHandRecord, VerificationResult } from "../../types/fairness";
 import { cashTableLabel } from "../CashGameLobbyPage/cashTables";
 import styles from "./CashGameTablePage.module.css";
 
@@ -115,9 +112,6 @@ export function CashGameTablePage() {
   const [actionBusy, setActionBusy] = useState(false);
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [flights, setFlights] = useState<ChipFlight[]>([]);
-  const [lastHand, setLastHand] = useState<LiveHandRecord | null>(null);
-  const [verification, setVerification] = useState<VerificationResult | null>(null);
-  const [verifying, setVerifying] = useState(false);
   const autoClaimAttemptedRef = useRef(false);
   // ADDED (USDC/Polygon integration)
   const [linkedWalletAddress, setLinkedWalletAddress] = useState<string | null>(null);
@@ -227,17 +221,6 @@ export function CashGameTablePage() {
   const hand = table?.hand ?? null;
   const phase = hand?.phase;
   const handNumber = hand?.handNumber;
-
-  useEffect(() => {
-    if (phase !== "idle" || !handNumber) return;
-    let cancelled = false;
-    fairnessApi.getLastLiveHand(tableId).then((record) => {
-      if (cancelled) return;
-      setLastHand(record);
-      setVerification(null);
-    }).catch(() => undefined);
-    return () => { cancelled = true; };
-  }, [tableId, phase, handNumber]);
 
   const mySeatIndex = userId != null ? Object.entries(seats).find(([, p]) => p && p.userId === userId)?.[0] : undefined;
   const mySeatIndexNum = mySeatIndex == null ? null : Number(mySeatIndex);
@@ -393,14 +376,6 @@ export function CashGameTablePage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed");
     } finally { setActionBusy(false); }
-  };
-
-  const verifyLastHand = async () => {
-    if (!lastHand) return;
-    setVerifying(true);
-    try { setVerification(await verifyLiveHand(lastHand)); }
-    catch (err) { setVerification({ verified: false, steps: [{ label: "Verification error", passed: false, detail: err instanceof Error ? err.message : String(err) }] }); }
-    finally { setVerifying(false); }
   };
 
   return (
@@ -564,7 +539,8 @@ export function CashGameTablePage() {
         </GlassPanel>
         <GlassPanel className={styles.utilityPanel}>
           <h2>Fairness Proof</h2>
-          {hand?.deckCommit ? <code className={styles.hash}>{hand.deckCommit}</code> : lastHand ? <><code className={styles.hash}>{lastHand.deckCommit}</code><Button className={styles.verifyButton} onClick={verifyLastHand} disabled={verifying}>{verifying ? "Verifying…" : verification?.verified ? "Verified ✓" : "Verify this hand"}</Button></> : <span className={styles.muted}>Deal a hand to see the deck commit hash.</span>}
+          {hand?.deckCommit ? <code className={styles.hash}>{hand.deckCommit}</code> : <span className={styles.muted}>Deal a hand to see the deck commit hash.</span>}
+          <p className={styles.muted}>Independent verification of the dealt deck is part of OpenDeck's proprietary shuffle protocol and is not included in this public version — the full feature runs at opendeck.ca.</p>
         </GlassPanel>
       </div>
     </div>
