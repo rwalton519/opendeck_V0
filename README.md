@@ -100,5 +100,5 @@ End-to-end and demo-flow scripts live alongside the backend (`e2e_test.js`, `dem
 
 ## License / ownership
 
-Copyright © 2026 Ryan Walton / SoverraAI Inc. All rights reserved.
+Copyright © 2026 R. Walton / SoverraAI Inc. All rights reserved.
 This repository is published for portfolio and evaluation purposes; no license is granted to reuse the code commercially.
