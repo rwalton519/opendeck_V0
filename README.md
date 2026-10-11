@@ -8,7 +8,7 @@
 
 OpenDeck is a full-stack multiplayer poker platform built end to end by a single developer — a React/TypeScript web app, a Node.js/Express API with a PostgreSQL database, real-time play over WebSockets, integrated wallet and payments, and a **provably fair shuffle** that any player can independently verify.
 
-![OpenDeck](docs/images/OpenDeck_Flippa_Hero_1600x900.png)
+![OpenDeck — full platform acquisition](docs/images/opendeck-acquisition.jpg)
 
 ## Why it's different: provably fair by design
 
@@ -21,7 +21,7 @@ Most online poker asks players to trust that the shuffle was fair. OpenDeck prov
 
 The engine is deliberately dependency-free — Node's built-in `crypto` only — and the same verification runs client-side in the browser. A provisional patent application has been filed for the shuffle, so **the engine implementation and the client-side verifiers are not published in this public repository** — the protocol is described here, and the surrounding code shows how it integrates (see `backend/services/rng/README.md`). The live product at opendeck.ca runs the full engine.
 
-![Provably fair shuffle](docs/images/OpenDeck_Provably_Fair_1600x900.png)
+![OpenDeck key technology](docs/images/opendeck-key-technology.jpg)
 
 ## Features
 
@@ -34,7 +34,7 @@ The engine is deliberately dependency-free — Node's built-in `crypto` only —
 
 ## Architecture
 
-![OpenDeck architecture — five layers](docs/images/OpenDeck_Five_Layers_1600x900.png)
+![OpenDeck platform overview](docs/images/opendeck-platform-overview.jpg)
 
 | Layer | Stack |
 |---|---|
